@@ -3,6 +3,9 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::command;
 
+// Max snapshots per persona
+const MAX_SNAPSHOTS: usize = 20;
+
 /// Get the .openclaw base directory
 fn openclaw_dir() -> PathBuf {
     dirs::home_dir()
@@ -22,6 +25,72 @@ fn workspace_dir(agent: &str) -> PathBuf {
 /// Get personas base directory
 fn personas_dir() -> PathBuf {
     openclaw_dir().join("personas")
+}
+
+/// Validate ID: only alphanumeric, hyphens, underscores
+fn validate_id(id: &str) -> Result<(), String> {
+    if id.is_empty() {
+        return Err("ID cannot be empty".to_string());
+    }
+    if !id
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(
+            "ID can only contain letters, numbers, hyphens, and underscores".to_string(),
+        );
+    }
+    Ok(())
+}
+
+/// Validate filename: only specific known files allowed
+fn validate_persona_filename(name: &str) -> Result<(), String> {
+    let allowed = [
+        "SOUL.md",
+        "IDENTITY.md",
+        "USER.md",
+        "AGENTS.md",
+        "MEMORY.md",
+    ];
+    if allowed.contains(&name) {
+        Ok(())
+    } else {
+        Err(format!("Filename '{}' is not allowed", name))
+    }
+}
+
+/// Expand ~ in paths
+fn expand_path(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(&path[2..]);
+        }
+    }
+    PathBuf::from(path)
+}
+
+/// Compact timestamp for snapshot IDs
+fn timestamp_compact() -> String {
+    std::process::Command::new("date")
+        .args(["+%Y%m%dT%H%M%S"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .unwrap_or_else(|| "unknown".to_string())
+        .trim()
+        .to_string()
+}
+
+/// Human-readable timestamp
+fn timestamp_human() -> String {
+    std::process::Command::new("date")
+        .args(["+%Y-%m-%dT%H:%M:%S"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .unwrap_or_default()
+        .trim()
+        .to_string()
 }
 
 // ============================================================
@@ -68,11 +137,16 @@ pub struct PersonaMeta {
     pub description: String,
     pub emoji: String,
     pub author: String,
+    pub source: String,
     pub is_active: bool,
     pub has_memory: bool,
     pub has_skills: bool,
     pub skill_count: usize,
     pub memory_count: usize,
+    pub snapshot_count: usize,
+    pub base_version: String,
+    pub current_version: String,
+    pub last_switched_at: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -86,379 +160,198 @@ pub struct CommunityPersona {
     pub tags: Vec<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SnapshotInfo {
+    pub id: String,
+    pub persona_id: String,
+    pub created_at: String,
+    pub reason: String,
+    pub has_memory: bool,
+    pub has_skills: bool,
+}
+
 // ============================================================
-// Persona Management Commands
+// Directory helpers
 // ============================================================
 
-/// List all local personas
-#[command]
-fn list_personas(agent: &str) -> Result<Vec<PersonaMeta>, String> {
-    let base = personas_dir();
-    if !base.exists() {
-        fs::create_dir_all(&base).map_err(|e| e.to_string())?;
-    }
+fn persona_current_dir(persona_id: &str) -> PathBuf {
+    personas_dir().join(persona_id).join("current")
+}
 
-    let ws = workspace_dir(agent);
-    // Detect active persona by reading .active-persona marker
-    let active_marker = ws.join(".active-persona");
-    let active_id = if active_marker.exists() {
-        fs::read_to_string(&active_marker).unwrap_or_default().trim().to_string()
+fn persona_base_dir(persona_id: &str) -> PathBuf {
+    personas_dir().join(persona_id).join("base")
+}
+
+fn persona_snapshots_dir(persona_id: &str) -> PathBuf {
+    personas_dir().join(persona_id).join("snapshots")
+}
+
+fn read_persona_meta_json(persona_id: &str) -> serde_json::Value {
+    let path = personas_dir().join(persona_id).join("meta.json");
+    if path.exists() {
+        let raw = fs::read_to_string(&path).unwrap_or_default();
+        serde_json::from_str(&raw).unwrap_or_default()
     } else {
-        String::new()
-    };
+        serde_json::json!({})
+    }
+}
 
-    let mut personas = vec![];
-    let entries = fs::read_dir(&base).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
-        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-            continue;
-        }
-        let id = entry.file_name().to_string_lossy().to_string();
-        let dir = entry.path();
+fn write_persona_meta_json(persona_id: &str, meta: &serde_json::Value) -> Result<(), String> {
+    let path = personas_dir().join(persona_id).join("meta.json");
+    fs::write(
+        &path,
+        serde_json::to_string_pretty(meta).unwrap_or_default(),
+    )
+    .map_err(|e| e.to_string())
+}
 
-        // Read meta.json if exists, otherwise derive from files
-        let meta_path = dir.join("meta.json");
-        let (name, description, emoji, author) = if meta_path.exists() {
-            let raw = fs::read_to_string(&meta_path).unwrap_or_default();
-            let v: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
-            (
-                v["name"].as_str().unwrap_or(&id).to_string(),
-                v["description"].as_str().unwrap_or("").to_string(),
-                v["emoji"].as_str().unwrap_or("🤖").to_string(),
-                v["author"].as_str().unwrap_or("").to_string(),
-            )
-        } else {
-            (id.clone(), String::new(), "🤖".to_string(), String::new())
-        };
-
-        let memory_dir = dir.join("memory");
-        let memory_count = if memory_dir.exists() {
-            fs::read_dir(&memory_dir).map(|r| r.count()).unwrap_or(0)
-        } else {
-            0
-        };
-
-        let skills_dir = dir.join("skills");
-        let skill_count = if skills_dir.exists() {
-            fs::read_dir(&skills_dir).map(|r| r.count()).unwrap_or(0)
-        } else {
-            0
-        };
-
-        personas.push(PersonaMeta {
-            is_active: id == active_id,
-            id,
-            name,
-            description,
-            emoji,
-            author,
-            has_memory: memory_count > 0 || dir.join("MEMORY.md").exists(),
-            has_skills: skill_count > 0,
-            skill_count,
-            memory_count,
-        });
+/// Create a snapshot of persona's current state
+fn create_snapshot_impl(persona_id: &str, reason: &str) -> Result<String, String> {
+    let current = persona_current_dir(persona_id);
+    if !current.exists() {
+        return Err(format!("Persona '{}' has no current state", persona_id));
     }
 
-    // Sort: active first, then alphabetical
-    personas.sort_by(|a, b| {
-        b.is_active.cmp(&a.is_active).then(a.name.cmp(&b.name))
+    let snap_dir = persona_snapshots_dir(persona_id);
+    fs::create_dir_all(&snap_dir).map_err(|e| e.to_string())?;
+
+    let snap_id = timestamp_compact();
+    let snap_path = snap_dir.join(&snap_id);
+    copy_dir_recursive(&current, &snap_path)?;
+
+    // Write snapshot meta
+    let snap_meta = serde_json::json!({
+        "id": snap_id,
+        "persona_id": persona_id,
+        "created_at": timestamp_human(),
+        "reason": reason,
     });
+    fs::write(
+        snap_path.join(".snapshot-meta.json"),
+        serde_json::to_string_pretty(&snap_meta).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
 
-    Ok(personas)
+    // Update persona meta
+    let mut meta = read_persona_meta_json(persona_id);
+    let count = meta["snapshot_count"].as_u64().unwrap_or(0) + 1;
+    meta["snapshot_count"] = serde_json::json!(count);
+    meta["last_backup_at"] = serde_json::json!(timestamp_human());
+    let ver = meta["current_version"].as_u64().unwrap_or(0) + 1;
+    meta["current_version"] = serde_json::json!(ver);
+    write_persona_meta_json(persona_id, &meta)?;
+
+    // Enforce max snapshots
+    enforce_snapshot_limit(persona_id)?;
+
+    Ok(snap_id)
 }
 
-/// Create a new persona
-#[command]
-fn create_persona(
-    id: String,
-    name: String,
-    description: String,
-    emoji: String,
-    soul_content: String,
-    identity_content: String,
-    agents_content: String,
-) -> Result<(), String> {
-    let dir = personas_dir().join(&id);
-    if dir.exists() {
-        return Err(format!("Persona '{}' already exists", id));
+fn enforce_snapshot_limit(persona_id: &str) -> Result<(), String> {
+    let snap_dir = persona_snapshots_dir(persona_id);
+    if !snap_dir.exists() {
+        return Ok(());
     }
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    fs::create_dir_all(dir.join("memory")).map_err(|e| e.to_string())?;
-    fs::create_dir_all(dir.join("skills")).map_err(|e| e.to_string())?;
-
-    // Write meta.json
-    let meta = serde_json::json!({
-        "name": name,
-        "description": description,
-        "emoji": emoji,
-        "author": "local",
-        "created": chrono_now(),
-    });
-    fs::write(dir.join("meta.json"), serde_json::to_string_pretty(&meta).unwrap())
-        .map_err(|e| e.to_string())?;
-
-    // Write persona files
-    if !soul_content.is_empty() {
-        fs::write(dir.join("SOUL.md"), &soul_content).map_err(|e| e.to_string())?;
+    let mut entries: Vec<_> = fs::read_dir(&snap_dir)
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+        .collect();
+    if entries.len() <= MAX_SNAPSHOTS {
+        return Ok(());
     }
-    if !identity_content.is_empty() {
-        fs::write(dir.join("IDENTITY.md"), &identity_content).map_err(|e| e.to_string())?;
+    entries.sort_by_key(|e| e.file_name());
+    let to_remove = entries.len() - MAX_SNAPSHOTS;
+    for entry in entries.iter().take(to_remove) {
+        let _ = fs::remove_dir_all(entry.path());
     }
-    if !agents_content.is_empty() {
-        fs::write(dir.join("AGENTS.md"), &agents_content).map_err(|e| e.to_string())?;
-    }
-    fs::write(dir.join("MEMORY.md"), "").map_err(|e| e.to_string())?;
-    fs::write(dir.join("USER.md"), "").map_err(|e| e.to_string())?;
-
     Ok(())
 }
 
-/// Switch active persona: save current workspace → persona dir, then load selected persona → workspace
-#[command]
-fn switch_persona(agent: String, persona_id: String) -> Result<(), String> {
-    let ws = workspace_dir(&agent);
-    let target_dir = personas_dir().join(&persona_id);
-
-    if !target_dir.exists() {
-        return Err(format!("Persona '{}' not found", persona_id));
+/// Migrate legacy flat persona to current/ structure
+fn migrate_legacy_persona(persona_id: &str) -> Result<(), String> {
+    let root = personas_dir().join(persona_id);
+    let current = persona_current_dir(persona_id);
+    if current.exists() {
+        return Ok(());
     }
 
-    // 1. Save current workspace to its persona dir (if there's an active one)
-    let active_marker = ws.join(".active-persona");
-    if active_marker.exists() {
-        let current_id = fs::read_to_string(&active_marker).unwrap_or_default().trim().to_string();
-        if !current_id.is_empty() && current_id != persona_id {
-            let current_dir = personas_dir().join(&current_id);
-            if current_dir.exists() {
-                save_workspace_to_persona(&ws, &current_dir)?;
-            }
-        }
-    }
+    fs::create_dir_all(&current).map_err(|e| e.to_string())?;
+    fs::create_dir_all(persona_snapshots_dir(persona_id)).map_err(|e| e.to_string())?;
 
-    // 2. Load target persona into workspace
-    load_persona_to_workspace(&target_dir, &ws)?;
-
-    // 3. Update active marker
-    fs::write(&active_marker, &persona_id).map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-/// Delete a persona
-#[command]
-fn delete_persona(agent: &str, persona_id: String) -> Result<(), String> {
-    let dir = personas_dir().join(&persona_id);
-    if !dir.exists() {
-        return Err(format!("Persona '{}' not found", persona_id));
-    }
-
-    // Don't allow deleting active persona
-    let ws = workspace_dir(agent);
-    let active_marker = ws.join(".active-persona");
-    if active_marker.exists() {
-        let active_id = fs::read_to_string(&active_marker).unwrap_or_default().trim().to_string();
-        if active_id == persona_id {
-            return Err("Cannot delete the active persona. Switch to another one first.".to_string());
-        }
-    }
-
-    fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Save current workspace as a new persona (snapshot)
-#[command]
-fn save_current_as_persona(
-    agent: String,
-    persona_id: String,
-    name: String,
-    description: String,
-    emoji: String,
-) -> Result<(), String> {
-    let ws = workspace_dir(&agent);
-    let dir = personas_dir().join(&persona_id);
-
-    if dir.exists() {
-        // Overwrite existing
-        fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
-    }
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-
-    save_workspace_to_persona(&ws, &dir)?;
-
-    // Write/overwrite meta.json
-    let meta = serde_json::json!({
-        "name": name,
-        "description": description,
-        "emoji": emoji,
-        "author": "local",
-        "created": chrono_now(),
-    });
-    fs::write(dir.join("meta.json"), serde_json::to_string_pretty(&meta).unwrap())
-        .map_err(|e| e.to_string())?;
-
-    // Update active marker
-    let active_marker = ws.join(".active-persona");
-    fs::write(&active_marker, &persona_id).map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-/// Fetch community personas index from GitHub
-#[command]
-async fn fetch_community_personas() -> Result<Vec<CommunityPersona>, String> {
-    let url = "https://raw.githubusercontent.com/openclaw0205/openclaw-personas/main/index.json";
-
-    let client = reqwest::Client::new();
-    let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Failed to fetch community index: {}", resp.status()));
-    }
-
-    let personas: Vec<CommunityPersona> = resp.json().await.map_err(|e| e.to_string())?;
-    Ok(personas)
-}
-
-/// Download a community persona
-#[command]
-async fn download_community_persona(persona_id: String) -> Result<(), String> {
-    let base_url = format!(
-        "https://raw.githubusercontent.com/openclaw0205/openclaw-personas/main/personas/{}",
-        persona_id
-    );
-
-    let dir = personas_dir().join(&persona_id);
-    if dir.exists() {
-        return Err(format!("Persona '{}' already exists locally", persona_id));
-    }
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    fs::create_dir_all(dir.join("memory")).map_err(|e| e.to_string())?;
-    fs::create_dir_all(dir.join("skills")).map_err(|e| e.to_string())?;
-
-    let client = reqwest::Client::new();
-    let files = ["meta.json", "SOUL.md", "IDENTITY.md", "AGENTS.md"];
+    let files = ["SOUL.md", "IDENTITY.md", "USER.md", "AGENTS.md", "MEMORY.md"];
     for file in &files {
-        let url = format!("{}/{}", base_url, file);
-        match client.get(&url).send().await {
-            Ok(resp) if resp.status().is_success() => {
-                let content = resp.text().await.map_err(|e| e.to_string())?;
-                fs::write(dir.join(file), &content).map_err(|e| e.to_string())?;
-            }
-            _ => {
-                // Optional files, skip if not found
-                if *file == "meta.json" {
-                    let meta = serde_json::json!({
-                        "name": persona_id,
-                        "description": "",
-                        "emoji": "🤖",
-                        "author": "community",
-                    });
-                    fs::write(dir.join("meta.json"), serde_json::to_string_pretty(&meta).unwrap())
-                        .map_err(|e| e.to_string())?;
-                }
-            }
+        let src = root.join(file);
+        if src.exists() {
+            fs::copy(&src, current.join(file)).map_err(|e| e.to_string())?;
+            let _ = fs::remove_file(&src);
         }
     }
-
-    // Create empty memory/user files
-    fs::write(dir.join("MEMORY.md"), "").map_err(|e| e.to_string())?;
-    fs::write(dir.join("USER.md"), "").map_err(|e| e.to_string())?;
-
+    // Move memory/ and skills/ dirs
+    for dir_name in &["memory", "skills"] {
+        let src = root.join(dir_name);
+        if src.exists() && src.is_dir() {
+            copy_dir_recursive(&src, &current.join(dir_name))?;
+            let _ = fs::remove_dir_all(&src);
+        }
+    }
     Ok(())
 }
 
-// ============================================================
-// Helper functions
-// ============================================================
+/// Copy files from workspace to a directory
+fn save_workspace_to_dir(ws: &PathBuf, target: &PathBuf) -> Result<(), String> {
+    fs::create_dir_all(target).map_err(|e| e.to_string())?;
 
-fn chrono_now() -> String {
-    // Simple timestamp without chrono dependency
-    let output = std::process::Command::new("date")
-        .args(["+%Y-%m-%dT%H:%M:%S"])
-        .output()
-        .ok();
-    output
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .unwrap_or_default()
-        .trim()
-        .to_string()
-}
-
-/// Copy persona files from workspace to persona directory
-fn save_workspace_to_persona(ws: &PathBuf, persona_dir: &PathBuf) -> Result<(), String> {
     let files = ["SOUL.md", "IDENTITY.md", "USER.md", "AGENTS.md", "MEMORY.md"];
     for file in &files {
         let src = ws.join(file);
         if src.exists() {
-            fs::copy(&src, persona_dir.join(file)).map_err(|e| e.to_string())?;
+            fs::copy(&src, target.join(file)).map_err(|e| e.to_string())?;
         }
     }
 
-    // Sync memory directory
-    let mem_src = ws.join("memory");
-    let mem_dst = persona_dir.join("memory");
-    if mem_src.exists() {
-        if mem_dst.exists() {
-            fs::remove_dir_all(&mem_dst).map_err(|e| e.to_string())?;
+    for dir_name in &["memory", "skills"] {
+        let src = ws.join(dir_name);
+        let dst = target.join(dir_name);
+        if src.exists() {
+            if dst.exists() {
+                fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+            }
+            copy_dir_recursive(&src, &dst)?;
         }
-        copy_dir_recursive(&mem_src, &mem_dst)?;
     }
-
-    // Sync skills directory
-    let skills_src = ws.join("skills");
-    let skills_dst = persona_dir.join("skills");
-    if skills_src.exists() {
-        if skills_dst.exists() {
-            fs::remove_dir_all(&skills_dst).map_err(|e| e.to_string())?;
-        }
-        copy_dir_recursive(&skills_src, &skills_dst)?;
-    }
-
     Ok(())
 }
 
-/// Load persona files from persona directory to workspace
-fn load_persona_to_workspace(persona_dir: &PathBuf, ws: &PathBuf) -> Result<(), String> {
+/// Load files from a directory to workspace
+fn load_dir_to_workspace(source: &PathBuf, ws: &PathBuf) -> Result<(), String> {
     let files = ["SOUL.md", "IDENTITY.md", "USER.md", "AGENTS.md", "MEMORY.md"];
     for file in &files {
-        let src = persona_dir.join(file);
+        let src = source.join(file);
         if src.exists() {
             fs::copy(&src, ws.join(file)).map_err(|e| e.to_string())?;
         } else {
-            // Write empty file if persona doesn't have it
             fs::write(ws.join(file), "").map_err(|e| e.to_string())?;
         }
     }
 
-    // Sync memory
-    let mem_src = persona_dir.join("memory");
-    let mem_dst = ws.join("memory");
-    if mem_src.exists() {
-        if mem_dst.exists() {
-            fs::remove_dir_all(&mem_dst).map_err(|e| e.to_string())?;
+    for dir_name in &["memory", "skills"] {
+        let src = source.join(dir_name);
+        let dst = ws.join(dir_name);
+        if src.exists() {
+            if dst.exists() {
+                fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+            }
+            copy_dir_recursive(&src, &dst)?;
         }
-        copy_dir_recursive(&mem_src, &mem_dst)?;
     }
-
-    // Sync skills
-    let skills_src = persona_dir.join("skills");
-    let skills_dst = ws.join("skills");
-    if skills_src.exists() {
-        if skills_dst.exists() {
-            fs::remove_dir_all(&skills_dst).map_err(|e| e.to_string())?;
-        }
-        copy_dir_recursive(&skills_src, &skills_dst)?;
-    }
-
     Ok(())
 }
 
 /// Recursively copy a directory
 fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), String> {
     fs::create_dir_all(dst).map_err(|e| e.to_string())?;
-    let entries = fs::read_dir(src).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
+    for entry in fs::read_dir(src).map_err(|e| e.to_string())?.flatten() {
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
         if src_path.is_dir() {
@@ -471,22 +364,458 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), String> {
 }
 
 // ============================================================
-// Original Commands
+// Persona Management Commands
+// ============================================================
+
+#[command]
+fn list_personas(agent: &str) -> Result<Vec<PersonaMeta>, String> {
+    let base = personas_dir();
+    if !base.exists() {
+        fs::create_dir_all(&base).map_err(|e| e.to_string())?;
+    }
+
+    let ws = workspace_dir(agent);
+    let active_marker = ws.join(".active-persona");
+    let active_id = if active_marker.exists() {
+        fs::read_to_string(&active_marker)
+            .unwrap_or_default()
+            .trim()
+            .to_string()
+    } else {
+        String::new()
+    };
+
+    let mut personas = vec![];
+    for entry in fs::read_dir(&base).map_err(|e| e.to_string())?.flatten() {
+        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        let id = entry.file_name().to_string_lossy().to_string();
+
+        // Use current/ subdir for stats, fall back to root for legacy
+        let current = persona_current_dir(&id);
+        let stat_dir = if current.exists() {
+            current
+        } else {
+            entry.path()
+        };
+
+        let meta = read_persona_meta_json(&id);
+        let name = meta["name"].as_str().unwrap_or(&id).to_string();
+        let description = meta["description"].as_str().unwrap_or("").to_string();
+        let emoji = meta["emoji"].as_str().unwrap_or("🤖").to_string();
+        let author = meta["author"].as_str().unwrap_or("").to_string();
+        let source = meta["source"].as_str().unwrap_or("local").to_string();
+        let base_version = meta["base_version"].as_str().unwrap_or("").to_string();
+        let current_version = meta["current_version"]
+            .as_u64()
+            .map(|v| format!("v{}", v))
+            .unwrap_or_default();
+        let last_switched_at = meta["last_switched_at"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+
+        let memory_dir = stat_dir.join("memory");
+        let memory_count = if memory_dir.exists() {
+            fs::read_dir(&memory_dir)
+                .map(|r| r.count())
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        let skills_dir = stat_dir.join("skills");
+        let skill_count = if skills_dir.exists() {
+            fs::read_dir(&skills_dir)
+                .map(|r| r.count())
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        let snap_dir = persona_snapshots_dir(&id);
+        let snapshot_count = if snap_dir.exists() {
+            fs::read_dir(&snap_dir)
+                .map(|r| {
+                    r.filter(|e| {
+                        e.as_ref()
+                            .map(|e| e.path().is_dir())
+                            .unwrap_or(false)
+                    })
+                    .count()
+                })
+                .unwrap_or(0)
+        } else {
+            0
+        };
+
+        personas.push(PersonaMeta {
+            is_active: id == active_id,
+            id,
+            name,
+            description,
+            emoji,
+            author,
+            source,
+            has_memory: memory_count > 0 || stat_dir.join("MEMORY.md").exists(),
+            has_skills: skill_count > 0,
+            skill_count,
+            memory_count,
+            snapshot_count,
+            base_version,
+            current_version,
+            last_switched_at,
+        });
+    }
+
+    personas.sort_by(|a, b| b.is_active.cmp(&a.is_active).then(a.name.cmp(&b.name)));
+    Ok(personas)
+}
+
+#[command]
+fn create_persona(
+    id: String,
+    name: String,
+    description: String,
+    emoji: String,
+    soul_content: String,
+    identity_content: String,
+    agents_content: String,
+) -> Result<(), String> {
+    validate_id(&id)?;
+
+    let root = personas_dir().join(&id);
+    if root.exists() {
+        return Err(format!("Persona '{}' already exists", id));
+    }
+
+    let current = persona_current_dir(&id);
+    fs::create_dir_all(&current).map_err(|e| e.to_string())?;
+    fs::create_dir_all(current.join("memory")).map_err(|e| e.to_string())?;
+    fs::create_dir_all(current.join("skills")).map_err(|e| e.to_string())?;
+    fs::create_dir_all(persona_snapshots_dir(&id)).map_err(|e| e.to_string())?;
+
+    let meta = serde_json::json!({
+        "name": name,
+        "description": description,
+        "emoji": emoji,
+        "author": "local",
+        "source": "local",
+        "base_version": "",
+        "current_version": 1,
+        "snapshot_count": 0,
+        "created_at": timestamp_human(),
+        "last_switched_at": "",
+        "last_backup_at": "",
+    });
+    write_persona_meta_json(&id, &meta)?;
+
+    if !soul_content.is_empty() {
+        fs::write(current.join("SOUL.md"), &soul_content).map_err(|e| e.to_string())?;
+    }
+    if !identity_content.is_empty() {
+        fs::write(current.join("IDENTITY.md"), &identity_content)
+            .map_err(|e| e.to_string())?;
+    }
+    if !agents_content.is_empty() {
+        fs::write(current.join("AGENTS.md"), &agents_content).map_err(|e| e.to_string())?;
+    }
+    fs::write(current.join("MEMORY.md"), "").map_err(|e| e.to_string())?;
+    fs::write(current.join("USER.md"), "").map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[command]
+fn switch_persona(agent: String, persona_id: String) -> Result<(), String> {
+    validate_id(&persona_id)?;
+
+    let ws = workspace_dir(&agent);
+    let target_current = persona_current_dir(&persona_id);
+
+    if !target_current.exists() {
+        let legacy = personas_dir().join(&persona_id);
+        if !legacy.exists() {
+            return Err(format!("Persona '{}' not found", persona_id));
+        }
+        migrate_legacy_persona(&persona_id)?;
+    }
+
+    // Save & snapshot current active
+    let active_marker = ws.join(".active-persona");
+    if active_marker.exists() {
+        let current_id = fs::read_to_string(&active_marker)
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+        if !current_id.is_empty() && current_id != persona_id {
+            let current_dir = persona_current_dir(&current_id);
+            if current_dir.exists() {
+                save_workspace_to_dir(&ws, &current_dir)?;
+                create_snapshot_impl(&current_id, "switch")?;
+                let mut meta = read_persona_meta_json(&current_id);
+                meta["last_switched_at"] = serde_json::json!(timestamp_human());
+                write_persona_meta_json(&current_id, &meta)?;
+            }
+        }
+    }
+
+    // Load target
+    load_dir_to_workspace(&target_current, &ws)?;
+    fs::write(&active_marker, &persona_id).map_err(|e| e.to_string())?;
+
+    let mut meta = read_persona_meta_json(&persona_id);
+    meta["last_switched_at"] = serde_json::json!(timestamp_human());
+    write_persona_meta_json(&persona_id, &meta)?;
+
+    Ok(())
+}
+
+#[command]
+fn delete_persona(agent: &str, persona_id: String) -> Result<(), String> {
+    validate_id(&persona_id)?;
+    let dir = personas_dir().join(&persona_id);
+    if !dir.exists() {
+        return Err(format!("Persona '{}' not found", persona_id));
+    }
+    let ws = workspace_dir(agent);
+    let active_marker = ws.join(".active-persona");
+    if active_marker.exists() {
+        let active_id = fs::read_to_string(&active_marker)
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+        if active_id == persona_id {
+            return Err(
+                "Cannot delete the active persona. Switch to another one first.".to_string(),
+            );
+        }
+    }
+    fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+fn save_current_as_persona(
+    agent: String,
+    persona_id: String,
+    name: String,
+    description: String,
+    emoji: String,
+) -> Result<(), String> {
+    validate_id(&persona_id)?;
+
+    let ws = workspace_dir(&agent);
+    let root = personas_dir().join(&persona_id);
+    let current = persona_current_dir(&persona_id);
+
+    if root.exists() && current.exists() {
+        let _ = create_snapshot_impl(&persona_id, "manual");
+        fs::remove_dir_all(&current).map_err(|e| e.to_string())?;
+    }
+
+    fs::create_dir_all(&current).map_err(|e| e.to_string())?;
+    fs::create_dir_all(persona_snapshots_dir(&persona_id)).map_err(|e| e.to_string())?;
+    save_workspace_to_dir(&ws, &current)?;
+
+    let meta = serde_json::json!({
+        "name": name,
+        "description": description,
+        "emoji": emoji,
+        "author": "local",
+        "source": "local",
+        "base_version": "",
+        "current_version": 1,
+        "snapshot_count": 0,
+        "created_at": timestamp_human(),
+        "last_switched_at": timestamp_human(),
+        "last_backup_at": "",
+    });
+    write_persona_meta_json(&persona_id, &meta)?;
+
+    let active_marker = ws.join(".active-persona");
+    fs::write(&active_marker, &persona_id).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+fn create_snapshot(persona_id: String) -> Result<String, String> {
+    validate_id(&persona_id)?;
+    create_snapshot_impl(&persona_id, "manual")
+}
+
+#[command]
+fn list_snapshots(persona_id: String) -> Result<Vec<SnapshotInfo>, String> {
+    validate_id(&persona_id)?;
+    let snap_dir = persona_snapshots_dir(&persona_id);
+    if !snap_dir.exists() {
+        return Ok(vec![]);
+    }
+    let mut snapshots = vec![];
+    for entry in fs::read_dir(&snap_dir).map_err(|e| e.to_string())?.flatten() {
+        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        let snap_id = entry.file_name().to_string_lossy().to_string();
+        let snap_path = entry.path();
+        let meta_path = snap_path.join(".snapshot-meta.json");
+        let (created_at, reason) = if meta_path.exists() {
+            let raw = fs::read_to_string(&meta_path).unwrap_or_default();
+            let v: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
+            (
+                v["created_at"].as_str().unwrap_or("").to_string(),
+                v["reason"].as_str().unwrap_or("").to_string(),
+            )
+        } else {
+            (snap_id.clone(), "unknown".to_string())
+        };
+        snapshots.push(SnapshotInfo {
+            id: snap_id,
+            persona_id: persona_id.clone(),
+            created_at,
+            reason,
+            has_memory: snap_path.join("memory").exists()
+                || snap_path.join("MEMORY.md").exists(),
+            has_skills: snap_path.join("skills").exists(),
+        });
+    }
+    snapshots.sort_by(|a, b| b.id.cmp(&a.id));
+    Ok(snapshots)
+}
+
+#[command]
+fn restore_snapshot(persona_id: String, snapshot_id: String) -> Result<(), String> {
+    validate_id(&persona_id)?;
+    let snap_path = persona_snapshots_dir(&persona_id).join(&snapshot_id);
+    if !snap_path.exists() {
+        return Err(format!("Snapshot '{}' not found", snapshot_id));
+    }
+    let current = persona_current_dir(&persona_id);
+    if current.exists() {
+        create_snapshot_impl(&persona_id, "pre-restore")?;
+        fs::remove_dir_all(&current).map_err(|e| e.to_string())?;
+    }
+    copy_dir_recursive(&snap_path, &current)?;
+    let meta_in_current = current.join(".snapshot-meta.json");
+    if meta_in_current.exists() {
+        let _ = fs::remove_file(&meta_in_current);
+    }
+    Ok(())
+}
+
+#[command]
+async fn fetch_community_personas() -> Result<Vec<CommunityPersona>, String> {
+    let url = "https://raw.githubusercontent.com/openclaw0205/openclaw-personas/main/index.json";
+    let client = reqwest::Client::new();
+    let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("Failed to fetch: {}", resp.status()));
+    }
+    let personas: Vec<CommunityPersona> = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(personas)
+}
+
+#[command]
+async fn download_community_persona(persona_id: String, force: bool) -> Result<String, String> {
+    validate_id(&persona_id)?;
+    let base_url = format!(
+        "https://raw.githubusercontent.com/openclaw0205/openclaw-personas/main/personas/{}",
+        persona_id
+    );
+    let root = personas_dir().join(&persona_id);
+    let current = persona_current_dir(&persona_id);
+    let base_dir = persona_base_dir(&persona_id);
+    let mut backup_id = String::new();
+
+    if root.exists() && current.exists() {
+        if !force {
+            return Err("EXISTS_LOCALLY".to_string());
+        }
+        backup_id = create_snapshot_impl(&persona_id, "pre-download")?;
+        fs::remove_dir_all(&current).map_err(|e| e.to_string())?;
+    }
+
+    fs::create_dir_all(&current).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&base_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(current.join("memory")).map_err(|e| e.to_string())?;
+    fs::create_dir_all(current.join("skills")).map_err(|e| e.to_string())?;
+    fs::create_dir_all(persona_snapshots_dir(&persona_id)).map_err(|e| e.to_string())?;
+
+    let client = reqwest::Client::new();
+    let files = ["meta.json", "SOUL.md", "IDENTITY.md", "AGENTS.md"];
+    for file in &files {
+        let url = format!("{}/{}", base_url, file);
+        match client.get(&url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                let content = resp.text().await.map_err(|e| e.to_string())?;
+                fs::write(current.join(file), &content).map_err(|e| e.to_string())?;
+                fs::write(base_dir.join(file), &content).map_err(|e| e.to_string())?;
+            }
+            _ => {
+                if *file == "meta.json" {
+                    let m = serde_json::json!({"name": persona_id, "emoji": "🤖", "author": "community"});
+                    let c = serde_json::to_string_pretty(&m).unwrap();
+                    fs::write(current.join(file), &c).map_err(|e| e.to_string())?;
+                    fs::write(base_dir.join(file), &c).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+    }
+    fs::write(current.join("MEMORY.md"), "").map_err(|e| e.to_string())?;
+    fs::write(current.join("USER.md"), "").map_err(|e| e.to_string())?;
+
+    // Build root meta
+    let dl_meta_path = current.join("meta.json");
+    let mut meta: serde_json::Value = if dl_meta_path.exists() {
+        let raw = fs::read_to_string(&dl_meta_path).unwrap_or_default();
+        serde_json::from_str(&raw).unwrap_or_default()
+    } else {
+        serde_json::json!({})
+    };
+    meta["source"] = serde_json::json!("community");
+    meta["base_version"] = serde_json::json!(timestamp_human());
+    meta["current_version"] = serde_json::json!(1);
+    meta["snapshot_count"] = serde_json::json!(if backup_id.is_empty() { 0 } else { 1 });
+    meta["created_at"] = serde_json::json!(timestamp_human());
+    meta["last_backup_at"] = if backup_id.is_empty() {
+        serde_json::json!("")
+    } else {
+        serde_json::json!(timestamp_human())
+    };
+    write_persona_meta_json(&persona_id, &meta)?;
+
+    let msg = if backup_id.is_empty() {
+        "downloaded".to_string()
+    } else {
+        format!("backed_up:{}", backup_id)
+    };
+    Ok(msg)
+}
+
+#[command]
+fn check_persona_exists(persona_id: String) -> Result<bool, String> {
+    validate_id(&persona_id)?;
+    Ok(personas_dir().join(&persona_id).exists())
+}
+
+// ============================================================
+// Original Commands (with security fixes)
 // ============================================================
 
 #[command]
 fn list_agents() -> Result<Vec<AgentInfo>, String> {
+    // Always include "main"
+    let mut agents = vec![AgentInfo {
+        id: "main".to_string(),
+        has_workspace: workspace_dir("main").exists(),
+    }];
     let agents_dir = openclaw_dir().join("agents");
-    if !agents_dir.exists() {
-        return Ok(vec![]);
-    }
-    let mut agents = vec![];
-    let entries = fs::read_dir(&agents_dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
-        if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-            let id = entry.file_name().to_string_lossy().to_string();
-            let has_workspace = workspace_dir(&id).exists();
-            agents.push(AgentInfo { id, has_workspace });
+    if agents_dir.exists() {
+        for entry in fs::read_dir(&agents_dir).map_err(|e| e.to_string())?.flatten() {
+            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                let id = entry.file_name().to_string_lossy().to_string();
+                let has_workspace = workspace_dir(&id).exists();
+                agents.push(AgentInfo { id, has_workspace });
+            }
         }
     }
     Ok(agents)
@@ -518,6 +847,7 @@ fn read_persona(agent: String) -> Result<Persona, String> {
 
 #[command]
 fn save_persona_file(agent: String, filename: String, content: String) -> Result<(), String> {
+    validate_persona_filename(&filename)?;
     let ws = workspace_dir(&agent);
     let path = ws.join(&filename);
     fs::write(&path, &content).map_err(|e| e.to_string())?;
@@ -532,8 +862,7 @@ fn list_skills(agent: String) -> Result<Vec<SkillInfo>, String> {
         return Ok(vec![]);
     }
     let mut skills = vec![];
-    let entries = fs::read_dir(&skills_dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
+    for entry in fs::read_dir(&skills_dir).map_err(|e| e.to_string())?.flatten() {
         if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
             let name = entry.file_name().to_string_lossy().to_string();
             let skill_md = entry.path().join("SKILL.md");
@@ -559,6 +888,7 @@ fn list_skills(agent: String) -> Result<Vec<SkillInfo>, String> {
 
 #[command]
 fn delete_skill(agent: String, skill_name: String) -> Result<(), String> {
+    validate_id(&skill_name)?;
     let ws = workspace_dir(&agent);
     let skill_path = ws.join("skills").join(&skill_name);
     if skill_path.exists() {
@@ -575,8 +905,7 @@ fn list_memories(agent: String) -> Result<Vec<MemoryEntry>, String> {
         return Ok(vec![]);
     }
     let mut memories = vec![];
-    let entries = fs::read_dir(&memory_dir).map_err(|e| e.to_string())?;
-    for entry in entries.flatten() {
+    for entry in fs::read_dir(&memory_dir).map_err(|e| e.to_string())?.flatten() {
         let filename = entry.file_name().to_string_lossy().to_string();
         if filename.ends_with(".md") {
             let content = fs::read_to_string(entry.path()).unwrap_or_default();
@@ -609,10 +938,12 @@ fn backup_persona(agent: String, output_path: String) -> Result<String, String> 
     if !ws.exists() {
         return Err("Workspace not found".to_string());
     }
+    let expanded = expand_path(&output_path);
+    let output_str = expanded.to_string_lossy().to_string();
     let output = std::process::Command::new("tar")
         .args([
             "-czf",
-            &output_path,
+            &output_str,
             "-C",
             ws.parent().unwrap().to_str().unwrap(),
             ws.file_name().unwrap().to_str().unwrap(),
@@ -620,18 +951,36 @@ fn backup_persona(agent: String, output_path: String) -> Result<String, String> 
         .output()
         .map_err(|e| e.to_string())?;
     if output.status.success() {
-        Ok(output_path)
+        Ok(output_str)
     } else {
         Err(String::from_utf8_lossy(&output.stderr).to_string())
     }
 }
 
 #[command]
-fn restore_persona(agent: String, backup_path: String) -> Result<(), String> {
+fn restore_persona_backup(agent: String, backup_path: String) -> Result<(), String> {
     let ws = workspace_dir(&agent);
     let parent = ws.parent().ok_or("Invalid path")?;
+    let expanded = expand_path(&backup_path);
+    let expanded_str = expanded.to_string_lossy().to_string();
+
+    // Validate archive: list contents and check for path traversal
+    let list_output = std::process::Command::new("tar")
+        .args(["-tzf", &expanded_str])
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !list_output.status.success() {
+        return Err("Invalid archive file".to_string());
+    }
+    let listing = String::from_utf8_lossy(&list_output.stdout);
+    for line in listing.lines() {
+        if line.starts_with('/') || line.contains("..") {
+            return Err(format!("Unsafe path in archive: {}", line));
+        }
+    }
+
     let output = std::process::Command::new("tar")
-        .args(["-xzf", &backup_path, "-C", parent.to_str().unwrap()])
+        .args(["-xzf", &expanded_str, "-C", parent.to_str().unwrap()])
         .output()
         .map_err(|e| e.to_string())?;
     if output.status.success() {
@@ -651,11 +1000,10 @@ fn read_config() -> Result<String, String> {
     }
 }
 
-/// Save openclaw config
 #[command]
 fn save_config(content: String) -> Result<(), String> {
-    let _: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Invalid JSON: {}", e))?;
+    let _: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
     let config_path = openclaw_dir().join("openclaw.json");
     fs::write(&config_path, &content).map_err(|e| e.to_string())?;
     Ok(())
@@ -673,7 +1021,7 @@ pub fn run() {
             list_memories,
             read_long_term_memory,
             backup_persona,
-            restore_persona,
+            restore_persona_backup,
             read_config,
             save_config,
             // Persona management
@@ -684,6 +1032,11 @@ pub fn run() {
             save_current_as_persona,
             fetch_community_personas,
             download_community_persona,
+            check_persona_exists,
+            // Snapshots
+            create_snapshot,
+            list_snapshots,
+            restore_snapshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

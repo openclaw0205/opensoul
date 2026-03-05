@@ -34,11 +34,16 @@ export interface PersonaMeta {
   description: string;
   emoji: string;
   author: string;
+  source: string;
   is_active: boolean;
   has_memory: boolean;
   has_skills: boolean;
   skill_count: number;
   memory_count: number;
+  snapshot_count: number;
+  base_version: string;
+  current_version: string;
+  last_switched_at: string;
 }
 
 export interface CommunityPersona {
@@ -51,11 +56,20 @@ export interface CommunityPersona {
   tags: string[];
 }
 
+export interface SnapshotInfo {
+  id: string;
+  persona_id: string;
+  created_at: string;
+  reason: string;
+  has_memory: boolean;
+  has_skills: boolean;
+}
+
 export const api = {
   // Agent management
   listAgents: () => invoke<AgentInfo[]>("list_agents"),
 
-  // Legacy persona file operations (used by backup/editor)
+  // Persona file operations (backup/editor)
   readPersona: (agent: string) => invoke<Persona>("read_persona", { agent }),
   savePersonaFile: (agent: string, filename: string, content: string) =>
     invoke<void>("save_persona_file", { agent, filename, content }),
@@ -72,14 +86,14 @@ export const api = {
   // Backup
   backupPersona: (agent: string, outputPath: string) =>
     invoke<string>("backup_persona", { agent, outputPath }),
-  restorePersona: (agent: string, backupPath: string) =>
-    invoke<void>("restore_persona", { agent, backupPath }),
+  restorePersonaBackup: (agent: string, backupPath: string) =>
+    invoke<void>("restore_persona_backup", { agent, backupPath }),
 
   // Config
   readConfig: () => invoke<string>("read_config"),
   saveConfig: (content: string) => invoke<void>("save_config", { content }),
 
-  // Persona management (new)
+  // Persona management
   listPersonas: (agent: string) => invoke<PersonaMeta[]>("list_personas", { agent }),
   createPersona: (params: {
     id: string;
@@ -89,16 +103,7 @@ export const api = {
     soulContent: string;
     identityContent: string;
     agentsContent: string;
-  }) =>
-    invoke<void>("create_persona", {
-      id: params.id,
-      name: params.name,
-      description: params.description,
-      emoji: params.emoji,
-      soulContent: params.soulContent,
-      identityContent: params.identityContent,
-      agentsContent: params.agentsContent,
-    }),
+  }) => invoke<void>("create_persona", params),
   switchPersona: (agent: string, personaId: string) =>
     invoke<void>("switch_persona", { agent, personaId }),
   deletePersona: (agent: string, personaId: string) =>
@@ -109,16 +114,16 @@ export const api = {
     name: string,
     description: string,
     emoji: string
-  ) =>
-    invoke<void>("save_current_as_persona", {
-      agent,
-      personaId,
-      name,
-      description,
-      emoji,
-    }),
-  fetchCommunityPersonas: () =>
-    invoke<CommunityPersona[]>("fetch_community_personas"),
-  downloadCommunityPersona: (personaId: string) =>
-    invoke<void>("download_community_persona", { personaId }),
+  ) => invoke<void>("save_current_as_persona", { agent, personaId, name, description, emoji }),
+  fetchCommunityPersonas: () => invoke<CommunityPersona[]>("fetch_community_personas"),
+  downloadCommunityPersona: (personaId: string, force: boolean = false) =>
+    invoke<string>("download_community_persona", { personaId, force }),
+  checkPersonaExists: (personaId: string) =>
+    invoke<boolean>("check_persona_exists", { personaId }),
+
+  // Snapshots
+  createSnapshot: (personaId: string) => invoke<string>("create_snapshot", { personaId }),
+  listSnapshots: (personaId: string) => invoke<SnapshotInfo[]>("list_snapshots", { personaId }),
+  restoreSnapshot: (personaId: string, snapshotId: string) =>
+    invoke<void>("restore_snapshot", { personaId, snapshotId }),
 };
