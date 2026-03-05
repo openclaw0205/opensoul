@@ -7,14 +7,53 @@
     "persona": "人格",
     "skills": "技能",
     "memory": "记忆",
-    "backup": "备份"
+    "backup": "备份",
+    "config": "配置"
   },
   "persona": {
     "title": "🧠 人格",
-    "desc": "编辑 AI 的性格、身份和行为规则",
-    "unsaved": "未保存的更改",
-    "save": "保存",
-    "saved": "✅ 已保存！"
+    "desc": "管理、切换和创建 AI 人格",
+    "tab": {
+      "my": "我的人格",
+      "community": "社区人格",
+      "create": "创建人格"
+    },
+    "active": "使用中",
+    "switch": "切换",
+    "switching": "切换中...",
+    "switched": "✅ 已切换到「{{name}}」",
+    "delete": "删除",
+    "confirmDelete": "确定删除人格「{{name}}」？所有记忆和技能都会被删除。",
+    "deleted": "已删除「{{name}}」",
+    "saveCurrent": "💾 保存当前为人格",
+    "saveCurrentPrompt": "输入人格 ID（英文、数字、下划线）",
+    "namePrompt": "输入显示名称",
+    "savedCurrent": "✅ 已保存为「{{name}}」",
+    "empty": "暂无人格",
+    "emptyHint": "点击「保存当前为人格」将当前配置保存，或从社区下载人格",
+    "memories": "条记忆",
+    "skillsLabel": "个技能",
+    "installed": "已安装",
+    "download": "下载",
+    "downloading": "下载中...",
+    "downloaded": "✅ 已下载「{{name}}」",
+    "communityError": "无法加载社区人格",
+    "communityEmpty": "社区暂无人格。敬请期待！",
+    "createTitle": "创建新人格",
+    "emojiLabel": "Emoji",
+    "idLabel": "ID",
+    "nameLabel": "名称",
+    "namePlaceholder": "我的助手",
+    "descLabel": "描述",
+    "descPlaceholder": "简单描述这个人格的特点",
+    "soulPlaceholder": "定义 AI 的性格、说话风格、价值观...",
+    "identityPlaceholder": "定义 AI 的名字、身份、背景...",
+    "agentsPlaceholder": "定义 AI 的行为规则...",
+    "createBtn": "✨ 创建",
+    "creating": "创建中...",
+    "created": "✅ 已创建「{{name}}」",
+    "createValidation": "ID 和名称不能为空",
+    "createIdInvalid": "ID 只能包含英文字母、数字、下划线和连字符"
   },
   "skills": {
     "title": "⚡ 技能",
@@ -50,5 +89,29 @@
   },
   "common": {
     "loading": "加载中..."
+  },
+  "config": {
+    "title": "⚙️ 配置",
+    "desc": "可视化编辑 OpenClaw 配置文件",
+    "back": "返回",
+    "save": "保存",
+    "saved": "✅ 配置已保存",
+    "unsaved": "未保存",
+    "discardConfirm": "有未保存的更改，确定放弃？",
+    "showSensitive": "显示敏感信息",
+    "section": {
+      "meta": "版本和元信息",
+      "wizard": "安装向导状态",
+      "browser": "浏览器配置",
+      "auth": "认证配置",
+      "models": "AI 模型和提供商",
+      "agents": "代理配置",
+      "messages": "消息设置",
+      "commands": "命令配置",
+      "channels": "通讯渠道",
+      "gateway": "网关设置",
+      "skills": "技能配置",
+      "plugins": "插件配置"
+    }
   }
 }

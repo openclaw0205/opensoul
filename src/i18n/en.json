@@ -7,14 +7,53 @@
     "persona": "Persona",
     "skills": "Skills",
     "memory": "Memory",
-    "backup": "Backup"
+    "backup": "Backup",
+    "config": "Config"
   },
   "persona": {
     "title": "🧠 Persona",
-    "desc": "Edit your AI's personality, identity, and behavior",
-    "unsaved": "Unsaved changes",
-    "save": "Save",
-    "saved": "✅ Saved!"
+    "desc": "Manage, switch, and create AI personas",
+    "tab": {
+      "my": "My Personas",
+      "community": "Community",
+      "create": "Create"
+    },
+    "active": "Active",
+    "switch": "Switch",
+    "switching": "Switching...",
+    "switched": "✅ Switched to \"{{name}}\"",
+    "delete": "Delete",
+    "confirmDelete": "Delete persona \"{{name}}\"? All memories and skills will be removed.",
+    "deleted": "Deleted \"{{name}}\"",
+    "saveCurrent": "💾 Save Current as Persona",
+    "saveCurrentPrompt": "Enter persona ID (letters, numbers, hyphens)",
+    "namePrompt": "Enter display name",
+    "savedCurrent": "✅ Saved as \"{{name}}\"",
+    "empty": "No personas yet",
+    "emptyHint": "Save your current config as a persona, or download one from the community",
+    "memories": "memories",
+    "skillsLabel": "skills",
+    "installed": "Installed",
+    "download": "Download",
+    "downloading": "Downloading...",
+    "downloaded": "✅ Downloaded \"{{name}}\"",
+    "communityError": "Failed to load community personas",
+    "communityEmpty": "No community personas yet. Stay tuned!",
+    "createTitle": "Create New Persona",
+    "emojiLabel": "Emoji",
+    "idLabel": "ID",
+    "nameLabel": "Name",
+    "namePlaceholder": "My Assistant",
+    "descLabel": "Description",
+    "descPlaceholder": "Briefly describe this persona",
+    "soulPlaceholder": "Define personality, tone, values...",
+    "identityPlaceholder": "Define name, identity, background...",
+    "agentsPlaceholder": "Define behavior rules...",
+    "createBtn": "✨ Create",
+    "creating": "Creating...",
+    "created": "✅ Created \"{{name}}\"",
+    "createValidation": "ID and name are required",
+    "createIdInvalid": "ID can only contain letters, numbers, hyphens, and underscores"
   },
   "skills": {
     "title": "⚡ Skills",
@@ -50,5 +89,29 @@
   },
   "common": {
     "loading": "Loading..."
+  },
+  "config": {
+    "title": "⚙️ Config",
+    "desc": "Visual editor for OpenClaw configuration",
+    "back": "Back",
+    "save": "Save",
+    "saved": "✅ Config saved",
+    "unsaved": "Unsaved",
+    "discardConfirm": "You have unsaved changes. Discard?",
+    "showSensitive": "Show sensitive values",
+    "section": {
+      "meta": "Version and metadata",
+      "wizard": "Setup wizard state",
+      "browser": "Browser settings",
+      "auth": "Authentication profiles",
+      "models": "AI models and providers",
+      "agents": "Agent configuration",
+      "messages": "Message settings",
+      "commands": "Command configuration",
+      "channels": "Communication channels",
+      "gateway": "Gateway settings",
+      "skills": "Skills configuration",
+      "plugins": "Plugin configuration"
+    }
   }
 }

@@ -5,9 +5,10 @@ import PersonaPage from "./pages/PersonaPage";
 import SkillsPage from "./pages/SkillsPage";
 import MemoryPage from "./pages/MemoryPage";
 import BackupPage from "./pages/BackupPage";
+import ConfigPage from "./pages/ConfigPage";
 import "./styles/global.css";
 
-type Page = "persona" | "skills" | "memory" | "backup";
+type Page = "persona" | "skills" | "memory" | "backup" | "config";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -20,6 +21,7 @@ function App() {
     { id: "skills", icon: "⚡", label: t("nav.skills") },
     { id: "memory", icon: "📚", label: t("nav.memory") },
     { id: "backup", icon: "💾", label: t("nav.backup") },
+    { id: "config", icon: "⚙️", label: t("nav.config") },
   ];
 
   useEffect(() => {
@@ -92,6 +94,7 @@ function App() {
         {page === "skills" && <SkillsPage agent={activeAgent} />}
         {page === "memory" && <MemoryPage agent={activeAgent} />}
         {page === "backup" && <BackupPage agent={activeAgent} />}
+        {page === "config" && <ConfigPage agent={activeAgent} />}
       </main>
     </div>
   );
