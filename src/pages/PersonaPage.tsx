@@ -123,7 +123,7 @@ function MyPersonas({ agent }: { agent: string }) {
         >
           ← {t("persona.backToList")}
         </button>
-        <SnapshotsPanel personaId={selectedForSnapshots} />
+        <SnapshotsPanel agent={agent} personaId={selectedForSnapshots} />
         {toast.el}
       </div>
     );
@@ -223,7 +223,7 @@ function MyPersonas({ agent }: { agent: string }) {
 // ============================================================
 // Snapshots Panel
 // ============================================================
-function SnapshotsPanel({ personaId }: { personaId: string }) {
+function SnapshotsPanel({ agent, personaId }: { agent: string; personaId: string }) {
   const { t } = useTranslation();
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,7 +243,7 @@ function SnapshotsPanel({ personaId }: { personaId: string }) {
 
   const handleCreateSnapshot = async () => {
     try {
-      const id = await api.createSnapshot(personaId);
+      const id = await api.createSnapshot(agent, personaId);
       toast.show(t("persona.snapshotCreated", { id }));
       await load();
     } catch (e: any) {
@@ -254,7 +254,7 @@ function SnapshotsPanel({ personaId }: { personaId: string }) {
   const handleRestore = async (snapId: string) => {
     if (!confirm(t("persona.confirmRestore", { id: snapId }))) return;
     try {
-      await api.restoreSnapshot(personaId, snapId);
+      await api.restoreSnapshot(agent, personaId, snapId);
       toast.show(t("persona.snapshotRestored", { id: snapId }));
       await load();
     } catch (e: any) {

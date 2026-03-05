@@ -122,8 +122,9 @@ export const api = {
     invoke<boolean>("check_persona_exists", { personaId }),
 
   // Snapshots
-  createSnapshot: (personaId: string) => invoke<string>("create_snapshot", { personaId }),
+  createSnapshot: (agent: string, personaId: string) =>
+    invoke<string>("create_snapshot", { agent, personaId }),
   listSnapshots: (personaId: string) => invoke<SnapshotInfo[]>("list_snapshots", { personaId }),
-  restoreSnapshot: (personaId: string, snapshotId: string) =>
-    invoke<void>("restore_snapshot", { personaId, snapshotId }),
+  restoreSnapshot: (agent: string, personaId: string, snapshotId: string) =>
+    invoke<void>("restore_snapshot", { agent, personaId, snapshotId }),
 };
