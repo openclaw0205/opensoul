@@ -98,6 +98,7 @@
     "saved": "✅ Config saved",
     "unsaved": "Unsaved",
     "discardConfirm": "You have unsaved changes. Discard?",
+    "selectSection": "Select a section on the left to edit",
     "showSensitive": "Show sensitive values",
     "section": {
       "meta": "Version and metadata",

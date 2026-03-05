@@ -595,3 +595,128 @@ body {
   max-height: 80px;
   overflow: hidden;
 }
+
+/* Config form */
+.config-sensitive-toggle {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.config-object {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.config-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-field:last-child {
+  border-bottom: none;
+}
+
+.config-field-nested {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-field-nested:last-child {
+  border-bottom: none;
+}
+
+.config-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.config-field .form-input {
+  flex: 1;
+}
+
+.config-field-nested > .config-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.config-nested-content {
+  padding-left: 16px;
+  border-left: 2px solid var(--border);
+  margin-left: 4px;
+}
+
+.config-toggle-wrapper {
+  flex: 1;
+}
+
+.config-toggle {
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.config-toggle-on {
+  background: rgba(92, 252, 124, 0.15);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.config-null {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.config-array {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-array-item {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.config-array-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.config-array-index {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: "SF Mono", "Fira Code", monospace;
+}

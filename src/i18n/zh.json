@@ -98,6 +98,7 @@
     "saved": "✅ 配置已保存",
     "unsaved": "未保存",
     "discardConfirm": "有未保存的更改，确定放弃？",
+    "selectSection": "选择左侧配置项进行编辑",
     "showSensitive": "显示敏感信息",
     "section": {
       "meta": "版本和元信息",
