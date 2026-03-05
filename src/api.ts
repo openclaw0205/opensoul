@@ -116,8 +116,8 @@ export const api = {
     emoji: string
   ) => invoke<void>("save_current_as_persona", { agent, personaId, name, description, emoji }),
   fetchCommunityPersonas: () => invoke<CommunityPersona[]>("fetch_community_personas"),
-  downloadCommunityPersona: (personaId: string, force: boolean = false) =>
-    invoke<string>("download_community_persona", { personaId, force }),
+  downloadCommunityPersona: (agent: string, personaId: string, force: boolean = false) =>
+    invoke<string>("download_community_persona", { agent, personaId, force }),
   checkPersonaExists: (personaId: string) =>
     invoke<boolean>("check_persona_exists", { personaId }),
 

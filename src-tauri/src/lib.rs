@@ -636,7 +636,11 @@ async fn fetch_community_personas() -> Result<Vec<CommunityPersona>, String> {
 }
 
 #[command]
-async fn download_community_persona(persona_id: String, force: bool) -> Result<String, String> {
+async fn download_community_persona(
+    agent: String,
+    persona_id: String,
+    force: bool,
+) -> Result<String, String> {
     validate_id(&persona_id)?;
     let base_url = format!(
         "https://raw.githubusercontent.com/openclaw0205/openclaw-personas/main/personas/{}",
@@ -650,7 +654,8 @@ async fn download_community_persona(persona_id: String, force: bool) -> Result<S
         if !force {
             return Err("EXISTS_LOCALLY".to_string());
         }
-        backup_id = create_snapshot_impl(&persona_id, "pre-download", None)?;
+        // P1 fix: sync workspace→current before snapshot if this persona is active
+        backup_id = create_snapshot_impl(&persona_id, "pre-download", Some(&agent))?;
         fs::remove_dir_all(&current).map_err(|e| e.to_string())?;
     }
     fs::create_dir_all(&current).map_err(|e| e.to_string())?;
@@ -693,6 +698,12 @@ async fn download_community_persona(persona_id: String, force: bool) -> Result<S
         "see snapshots"
     });
     write_persona_meta_json(&persona_id, &meta)?;
+    // P1 fix: if this persona is active, load new content into workspace
+    if let Some(active) = get_active_persona_id(&agent) {
+        if active == persona_id {
+            load_dir_to_workspace(&current, &workspace_dir(&agent))?;
+        }
+    }
     Ok(if backup_id.is_empty() {
         "downloaded".to_string()
     } else {

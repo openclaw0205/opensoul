@@ -357,7 +357,7 @@ function CommunityPersonas({ agent }: { agent: string }) {
         }
         force = true;
       }
-      const result = await api.downloadCommunityPersona(id, force);
+      const result = await api.downloadCommunityPersona(agent, id, force);
       if (result.startsWith("backed_up:")) {
         toast.show(t("persona.downloadedWithBackup", { name: id }));
       } else {
@@ -369,7 +369,7 @@ function CommunityPersonas({ agent }: { agent: string }) {
         // Shouldn't reach here since we check first, but handle gracefully
         if (confirm(t("persona.overwriteConfirm", { name: id }))) {
           try {
-            const result = await api.downloadCommunityPersona(id, true);
+            const result = await api.downloadCommunityPersona(agent, id, true);
             toast.show(
               result.startsWith("backed_up:")
                 ? t("persona.downloadedWithBackup", { name: id })
