@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api, AgentInfo } from "./api";
 import PersonaPage from "./pages/PersonaPage";
 import SkillsPage from "./pages/SkillsPage";
@@ -8,17 +9,18 @@ import "./styles/global.css";
 
 type Page = "persona" | "skills" | "memory" | "backup";
 
-const NAV_ITEMS: { id: Page; icon: string; label: string }[] = [
-  { id: "persona", icon: "🧠", label: "Persona" },
-  { id: "skills", icon: "⚡", label: "Skills" },
-  { id: "memory", icon: "📚", label: "Memory" },
-  { id: "backup", icon: "💾", label: "Backup" },
-];
-
 function App() {
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState<Page>("persona");
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [activeAgent, setActiveAgent] = useState("main");
+
+  const NAV_ITEMS: { id: Page; icon: string; label: string }[] = [
+    { id: "persona", icon: "🧠", label: t("nav.persona") },
+    { id: "skills", icon: "⚡", label: t("nav.skills") },
+    { id: "memory", icon: "📚", label: t("nav.memory") },
+    { id: "backup", icon: "💾", label: t("nav.backup") },
+  ];
 
   useEffect(() => {
     api.listAgents().then((a) => {
@@ -29,14 +31,17 @@ function App() {
     });
   }, []);
 
+  const switchLang = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem("opensoul-lang", lang);
+  };
+
   return (
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <h1>
-            🦞 OpenSoul
-          </h1>
-          <span>Persona Manager</span>
+          <h1>🦞 {t("app.title")}</h1>
+          <span>{t("app.subtitle")}</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -60,10 +65,25 @@ function App() {
           >
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
-                Agent: {a.id}
+                {t("agent.label", { id: a.id })}
               </option>
             ))}
           </select>
+
+          <div className="lang-switcher" style={{ marginTop: 8, display: "flex", gap: 4 }}>
+            <button
+              className={`btn btn-sm ${i18n.language === "en" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => switchLang("en")}
+            >
+              EN
+            </button>
+            <button
+              className={`btn btn-sm ${i18n.language === "zh" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => switchLang("zh")}
+            >
+              中文
+            </button>
+          </div>
         </div>
       </aside>
 

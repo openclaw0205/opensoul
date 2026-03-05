@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api, MemoryEntry } from "../api";
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function MemoryPage({ agent }: Props) {
+  const { t } = useTranslation();
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
   const [longTermMemory, setLongTermMemory] = useState("");
   const [selected, setSelected] = useState<MemoryEntry | null>(null);
@@ -19,8 +21,8 @@ export default function MemoryPage({ agent }: Props) {
   return (
     <div>
       <div className="page-header">
-        <h2>📚 Memory</h2>
-        <p>Browse daily memories and long-term memory</p>
+        <h2>{t("memory.title")}</h2>
+        <p>{t("memory.desc")}</p>
       </div>
 
       <div className="tabs">
@@ -28,13 +30,13 @@ export default function MemoryPage({ agent }: Props) {
           className={`tab ${tab === "daily" ? "active" : ""}`}
           onClick={() => setTab("daily")}
         >
-          Daily Notes ({memories.length})
+          {t("memory.daily")} ({memories.length})
         </button>
         <button
           className={`tab ${tab === "longterm" ? "active" : ""}`}
           onClick={() => setTab("longterm")}
         >
-          MEMORY.md
+          {t("memory.longterm")}
         </button>
       </div>
 
@@ -55,14 +57,12 @@ export default function MemoryPage({ agent }: Props) {
                   }}
                 >
                   <div className="date">{m.date}</div>
-                  <div className="preview">
-                    {m.content.slice(0, 80)}...
-                  </div>
+                  <div className="preview">{m.content.slice(0, 80)}...</div>
                 </div>
               ))}
               {memories.length === 0 && (
                 <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                  No daily memories found
+                  {t("memory.noDaily")}
                 </p>
               )}
             </div>
@@ -87,7 +87,7 @@ export default function MemoryPage({ agent }: Props) {
             ) : (
               <div className="card">
                 <p style={{ color: "var(--text-muted)" }}>
-                  Select a date to view memories
+                  {t("memory.selectDate")}
                 </p>
               </div>
             )}
@@ -103,7 +103,7 @@ export default function MemoryPage({ agent }: Props) {
               color: "var(--text-secondary)",
             }}
           >
-            {longTermMemory || "No long-term memory found"}
+            {longTermMemory || t("memory.noLongterm")}
           </pre>
         </div>
       )}

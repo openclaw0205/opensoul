@@ -1,0 +1,54 @@
+{
+  "app": {
+    "title": "OpenSoul",
+    "subtitle": "人格管理器"
+  },
+  "nav": {
+    "persona": "人格",
+    "skills": "技能",
+    "memory": "记忆",
+    "backup": "备份"
+  },
+  "persona": {
+    "title": "🧠 人格",
+    "desc": "编辑 AI 的性格、身份和行为规则",
+    "unsaved": "未保存的更改",
+    "save": "保存",
+    "saved": "✅ 已保存！"
+  },
+  "skills": {
+    "title": "⚡ 技能",
+    "desc": "管理已安装的技能 · 已安装 {{count}} 个技能",
+    "uninstall": "卸载",
+    "confirmDelete": "确定删除技能「{{name}}」？",
+    "empty": "暂无已安装的技能。通过以下命令安装：",
+    "emptyCmd": "openclaw skill install"
+  },
+  "memory": {
+    "title": "📚 记忆",
+    "desc": "浏览每日记忆和长期记忆",
+    "daily": "每日笔记",
+    "longterm": "长期记忆",
+    "selectDate": "选择日期查看记忆",
+    "noDaily": "暂无每日记忆",
+    "noLongterm": "暂无长期记忆"
+  },
+  "backup": {
+    "title": "💾 备份与恢复",
+    "desc": "备份和恢复你的 AI 人格",
+    "backupTitle": "备份",
+    "backupDesc": "创建当前人格的快照（SOUL.md、IDENTITY.md、记忆、技能等）",
+    "backupNow": "📦 立即备份",
+    "backupSuccess": "✅ 备份已保存至：{{path}}",
+    "backing": "备份中...",
+    "restoreTitle": "恢复",
+    "restoreDesc": "从之前的备份文件恢复人格。这将覆盖当前文件。",
+    "restoreBtn": "🔄 恢复（即将推出）"
+  },
+  "agent": {
+    "label": "代理：{{id}}"
+  },
+  "common": {
+    "loading": "加载中..."
+  }
+}

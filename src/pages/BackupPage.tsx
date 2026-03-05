@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api";
 
 interface Props {
@@ -6,17 +7,18 @@ interface Props {
 }
 
 export default function BackupPage({ agent }: Props) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const handleBackup = async () => {
     try {
-      setStatus("Backing up...");
+      setStatus(t("backup.backing"));
       setError("");
       const timestamp = new Date().toISOString().slice(0, 10);
-      const outputPath = `${process.env.HOME || "~"}/Desktop/opensoul-backup-${agent}-${timestamp}.tar.gz`;
+      const outputPath = `~/Desktop/opensoul-backup-${agent}-${timestamp}.tar.gz`;
       const result = await api.backupPersona(agent, outputPath);
-      setStatus(`✅ Backup saved to: ${result}`);
+      setStatus(t("backup.backupSuccess", { path: result }));
     } catch (e: any) {
       setError(e.toString());
       setStatus("");
@@ -26,41 +28,37 @@ export default function BackupPage({ agent }: Props) {
   return (
     <div>
       <div className="page-header">
-        <h2>💾 Backup & Restore</h2>
-        <p>Backup and restore your AI persona</p>
+        <h2>{t("backup.title")}</h2>
+        <p>{t("backup.desc")}</p>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>Backup</h3>
+          <h3>{t("backup.backupTitle")}</h3>
         </div>
         <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
-          Create a snapshot of the current persona (SOUL.md, IDENTITY.md, memory, skills, etc.)
+          {t("backup.backupDesc")}
         </p>
         <button className="btn btn-primary" onClick={handleBackup}>
-          📦 Backup Now
+          {t("backup.backupNow")}
         </button>
         {status && (
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>
-            {status}
-          </p>
+          <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>{status}</p>
         )}
         {error && (
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>
-            {error}
-          </p>
+          <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{error}</p>
         )}
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>Restore</h3>
+          <h3>{t("backup.restoreTitle")}</h3>
         </div>
         <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
-          Restore persona from a previous backup file. This will overwrite current files.
+          {t("backup.restoreDesc")}
         </p>
         <button className="btn btn-secondary" disabled>
-          🔄 Restore (coming soon)
+          {t("backup.restoreBtn")}
         </button>
       </div>
     </div>

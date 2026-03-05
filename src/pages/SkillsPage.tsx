@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api, SkillInfo } from "../api";
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function SkillsPage({ agent }: Props) {
+  const { t } = useTranslation();
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +20,7 @@ export default function SkillsPage({ agent }: Props) {
   }, [agent]);
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`Delete skill "${name}"?`)) return;
+    if (!confirm(t("skills.confirmDelete", { name }))) return;
     await api.deleteSkill(agent, name);
     setSkills(skills.filter((s) => s.name !== name));
   };
@@ -26,20 +28,16 @@ export default function SkillsPage({ agent }: Props) {
   return (
     <div>
       <div className="page-header">
-        <h2>⚡ Skills</h2>
-        <p>
-          Manage installed skills · {skills.length} skill
-          {skills.length !== 1 ? "s" : ""} installed
-        </p>
+        <h2>{t("skills.title")}</h2>
+        <p>{t("skills.desc", { count: skills.length })}</p>
       </div>
 
       {loading ? (
-        <div>Loading...</div>
+        <div>{t("common.loading")}</div>
       ) : skills.length === 0 ? (
         <div className="card">
           <p style={{ color: "var(--text-secondary)" }}>
-            No skills installed. Install skills via{" "}
-            <code>openclaw skill install</code>
+            {t("skills.empty")} <code>{t("skills.emptyCmd")}</code>
           </p>
         </div>
       ) : (
@@ -53,7 +51,7 @@ export default function SkillsPage({ agent }: Props) {
                   className="btn btn-danger btn-sm"
                   onClick={() => handleDelete(skill.name)}
                 >
-                  Uninstall
+                  {t("skills.uninstall")}
                 </button>
               </div>
             </div>

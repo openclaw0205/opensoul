@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { api, Persona, PersonaFile } from "../api";
+import { useTranslation } from "react-i18next";
+import { api, Persona } from "../api";
 
 interface Props {
   agent: string;
 }
 
 export default function PersonaPage({ agent }: Props) {
+  const { t } = useTranslation();
   const [persona, setPersona] = useState<Persona | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [editContent, setEditContent] = useState("");
@@ -34,7 +36,6 @@ export default function PersonaPage({ agent }: Props) {
     if (!persona) return;
     const file = persona.files[activeTab];
     await api.savePersonaFile(agent, file.name, editContent);
-    // Update local state
     const updated = { ...persona };
     updated.files[activeTab] = { ...file, content: editContent };
     setPersona(updated);
@@ -43,13 +44,13 @@ export default function PersonaPage({ agent }: Props) {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  if (!persona) return <div>Loading...</div>;
+  if (!persona) return <div>{t("common.loading")}</div>;
 
   return (
     <div>
       <div className="page-header">
-        <h2>🧠 Persona</h2>
-        <p>Edit your AI's personality, identity, and behavior</p>
+        <h2>{t("persona.title")}</h2>
+        <p>{t("persona.desc")}</p>
       </div>
 
       <div className="tabs">
@@ -70,11 +71,11 @@ export default function PersonaPage({ agent }: Props) {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {dirty && (
               <span style={{ fontSize: 12, color: "var(--warning)" }}>
-                Unsaved changes
+                {t("persona.unsaved")}
               </span>
             )}
             <button className="btn btn-primary" onClick={save}>
-              Save
+              {t("persona.save")}
             </button>
           </div>
         </div>
@@ -94,7 +95,7 @@ export default function PersonaPage({ agent }: Props) {
         />
       </div>
 
-      {saved && <div className="toast toast-success">✅ Saved!</div>}
+      {saved && <div className="toast toast-success">{t("persona.saved")}</div>}
     </div>
   );
 }

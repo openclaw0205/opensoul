@@ -1,0 +1,54 @@
+{
+  "app": {
+    "title": "OpenSoul",
+    "subtitle": "Persona Manager"
+  },
+  "nav": {
+    "persona": "Persona",
+    "skills": "Skills",
+    "memory": "Memory",
+    "backup": "Backup"
+  },
+  "persona": {
+    "title": "🧠 Persona",
+    "desc": "Edit your AI's personality, identity, and behavior",
+    "unsaved": "Unsaved changes",
+    "save": "Save",
+    "saved": "✅ Saved!"
+  },
+  "skills": {
+    "title": "⚡ Skills",
+    "desc": "Manage installed skills · {{count}} skill(s) installed",
+    "uninstall": "Uninstall",
+    "confirmDelete": "Delete skill \"{{name}}\"?",
+    "empty": "No skills installed. Install skills via",
+    "emptyCmd": "openclaw skill install"
+  },
+  "memory": {
+    "title": "📚 Memory",
+    "desc": "Browse daily memories and long-term memory",
+    "daily": "Daily Notes",
+    "longterm": "MEMORY.md",
+    "selectDate": "Select a date to view memories",
+    "noDaily": "No daily memories found",
+    "noLongterm": "No long-term memory found"
+  },
+  "backup": {
+    "title": "💾 Backup & Restore",
+    "desc": "Backup and restore your AI persona",
+    "backupTitle": "Backup",
+    "backupDesc": "Create a snapshot of the current persona (SOUL.md, IDENTITY.md, memory, skills, etc.)",
+    "backupNow": "📦 Backup Now",
+    "backupSuccess": "✅ Backup saved to: {{path}}",
+    "backing": "Backing up...",
+    "restoreTitle": "Restore",
+    "restoreDesc": "Restore persona from a previous backup file. This will overwrite current files.",
+    "restoreBtn": "🔄 Restore (coming soon)"
+  },
+  "agent": {
+    "label": "Agent: {{id}}"
+  },
+  "common": {
+    "loading": "Loading..."
+  }
+}
