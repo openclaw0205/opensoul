@@ -81,6 +81,7 @@
     "desc": "Manage installed skills · {{count}} skill(s) installed",
     "uninstall": "Uninstall",
     "confirmDelete": "Delete skill \"{{name}}\"?",
+    "deleted": "Deleted \"{{name}}\"",
     "empty": "No skills installed. Install skills via",
     "emptyCmd": "openclaw skill install"
   },
@@ -103,7 +104,11 @@
     "backing": "Backing up...",
     "restoreTitle": "Restore",
     "restoreDesc": "Restore persona from a previous backup file. This will overwrite current files.",
-    "restoreBtn": "🔄 Restore (coming soon)"
+    "restoreBtn": "🔄 Restore from Backup",
+    "restorePrompt": "Enter backup file path (e.g. ~/Desktop/opensoul-backup-main-2026-03-06.tar.gz)",
+    "restoreConfirm": "This will overwrite all current files. Continue?",
+    "restoring": "Restoring...",
+    "restoreSuccess": "✅ Restored successfully!"
   },
   "agent": {
     "label": "Agent: {{id}}"

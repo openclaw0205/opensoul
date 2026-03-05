@@ -81,6 +81,7 @@
     "desc": "管理已安装的技能 · 已安装 {{count}} 个技能",
     "uninstall": "卸载",
     "confirmDelete": "确定删除技能「{{name}}」？",
+    "deleted": "已删除「{{name}}」",
     "empty": "暂无已安装的技能。通过以下命令安装：",
     "emptyCmd": "openclaw skill install"
   },
@@ -103,7 +104,11 @@
     "backing": "备份中...",
     "restoreTitle": "恢复",
     "restoreDesc": "从之前的备份文件恢复人格。这将覆盖当前文件。",
-    "restoreBtn": "🔄 恢复（即将推出）"
+    "restoreBtn": "🔄 从备份恢复",
+    "restorePrompt": "输入备份文件路径（如 ~/Desktop/opensoul-backup-main-2026-03-06.tar.gz）",
+    "restoreConfirm": "恢复将覆盖当前所有文件，确定继续？",
+    "restoring": "恢复中...",
+    "restoreSuccess": "✅ 恢复成功！"
   },
   "agent": {
     "label": "代理：{{id}}"

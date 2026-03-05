@@ -522,7 +522,7 @@ fn save_current_as_persona(
     let current = persona_current_dir(&persona_id);
     let existed = root.exists();
     if existed && current.exists() {
-        let _ = create_snapshot_impl(&persona_id, "manual", Some(&agent));
+        create_snapshot_impl(&persona_id, "manual", Some(&agent))?;
         fs::remove_dir_all(&current).map_err(|e| e.to_string())?;
     }
     fs::create_dir_all(&current).map_err(|e| e.to_string())?;
@@ -683,20 +683,33 @@ async fn download_community_persona(
     }
     fs::write(current.join("MEMORY.md"), "").map_err(|e| e.to_string())?;
     fs::write(current.join("USER.md"), "").map_err(|e| e.to_string())?;
-    let mut meta: serde_json::Value = fs::read_to_string(current.join("meta.json"))
+    // Merge downloaded meta with existing persona meta (preserve history)
+    let dl_meta: serde_json::Value = fs::read_to_string(current.join("meta.json"))
         .ok()
         .and_then(|r| serde_json::from_str(&r).ok())
         .unwrap_or_default();
+    let mut meta = if backup_id.is_empty() {
+        // Fresh download: use downloaded meta as base
+        dl_meta
+    } else {
+        // Overwrite: preserve existing history, merge downloaded fields
+        let mut existing = read_persona_meta_json(&persona_id);
+        // Update display fields from community
+        for key in &["name", "description", "emoji", "author"] {
+            if let Some(v) = dl_meta.get(*key) {
+                existing[*key] = v.clone();
+            }
+        }
+        existing
+    };
     meta["source"] = serde_json::json!("community");
     meta["base_version"] = serde_json::json!(timestamp_human());
-    meta["current_version"] = serde_json::json!(1);
-    meta["snapshot_count"] = serde_json::json!(if backup_id.is_empty() { 0 } else { 1 });
-    meta["created_at"] = serde_json::json!(timestamp_human());
-    meta["last_backup_at"] = serde_json::json!(if backup_id.is_empty() {
-        ""
-    } else {
-        "see snapshots"
-    });
+    if backup_id.is_empty() {
+        meta["current_version"] = serde_json::json!(1);
+        meta["snapshot_count"] = serde_json::json!(0);
+        meta["created_at"] = serde_json::json!(timestamp_human());
+    }
+    // For overwrites: current_version and snapshot_count already incremented by create_snapshot_impl
     write_persona_meta_json(&persona_id, &meta)?;
     // P1 fix: if this persona is active, load new content into workspace
     if let Some(active) = get_active_persona_id(&agent) {
@@ -891,9 +904,25 @@ fn restore_persona_backup(agent: String, backup_path: String) -> Result<(), Stri
     if !list.status.success() {
         return Err("Invalid archive".to_string());
     }
+    let ws_name = ws
+        .file_name()
+        .ok_or("Invalid workspace path")?
+        .to_string_lossy()
+        .to_string();
     for line in String::from_utf8_lossy(&list.stdout).lines() {
+        let trimmed = line.trim_end_matches('/');
+        if trimmed.is_empty() {
+            continue;
+        }
         if line.starts_with('/') || line.contains("..") {
-            return Err(format!("Unsafe path: {}", line));
+            return Err(format!("Unsafe path in archive: {}", line));
+        }
+        // All entries must be under the workspace directory name
+        if !trimmed.starts_with(&ws_name) {
+            return Err(format!(
+                "Path '{}' is outside workspace '{}'",
+                line, ws_name
+            ));
         }
     }
     let r = std::process::Command::new("tar")

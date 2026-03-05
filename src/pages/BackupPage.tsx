@@ -10,6 +10,8 @@ export default function BackupPage({ agent }: Props) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [restoreStatus, setRestoreStatus] = useState<string>("");
+  const [restoreError, setRestoreError] = useState<string>("");
 
   const handleBackup = async () => {
     try {
@@ -22,6 +24,21 @@ export default function BackupPage({ agent }: Props) {
     } catch (e: any) {
       setError(e.toString());
       setStatus("");
+    }
+  };
+
+  const handleRestore = async () => {
+    const path = prompt(t("backup.restorePrompt"));
+    if (!path) return;
+    if (!confirm(t("backup.restoreConfirm"))) return;
+    try {
+      setRestoreStatus(t("backup.restoring"));
+      setRestoreError("");
+      await api.restorePersonaBackup(agent, path);
+      setRestoreStatus(t("backup.restoreSuccess"));
+    } catch (e: any) {
+      setRestoreError(e.toString());
+      setRestoreStatus("");
     }
   };
 
@@ -57,9 +74,15 @@ export default function BackupPage({ agent }: Props) {
         <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
           {t("backup.restoreDesc")}
         </p>
-        <button className="btn btn-secondary" disabled>
+        <button className="btn btn-danger" onClick={handleRestore}>
           {t("backup.restoreBtn")}
         </button>
+        {restoreStatus && (
+          <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>{restoreStatus}</p>
+        )}
+        {restoreError && (
+          <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{restoreError}</p>
+        )}
       </div>
     </div>
   );
