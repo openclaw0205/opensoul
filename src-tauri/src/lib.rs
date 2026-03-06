@@ -746,6 +746,9 @@ fn list_agents() -> Result<Vec<AgentInfo>, String> {
         {
             if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                 let id = entry.file_name().to_string_lossy().to_string();
+                if id == "main" {
+                    continue; // already added above
+                }
                 agents.push(AgentInfo {
                     id: id.clone(),
                     has_workspace: workspace_dir(&id).exists(),
