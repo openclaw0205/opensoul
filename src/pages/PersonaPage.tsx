@@ -13,25 +13,29 @@ export default function PersonaPage({ agent }: Props) {
   const [tab, setTab] = useState<Tab>("my");
 
   return (
-    <div>
-      <div className="page-header">
-        <h2>{t("persona.title")}</h2>
-        <p>{t("persona.desc")}</p>
+    <div className="page-shell">
+      <div className="page-fixed">
+        <div className="page-header">
+          <h2>{t("persona.title")}</h2>
+          <p>{t("persona.desc")}</p>
+        </div>
+        <div className="tabs">
+          {(["my", "community", "create"] as Tab[]).map((id) => (
+            <button
+              key={id}
+              className={`tab ${tab === id ? "active" : ""}`}
+              onClick={() => setTab(id)}
+            >
+              {t(`persona.tab.${id}`)}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="tabs">
-        {(["my", "community", "create"] as Tab[]).map((id) => (
-          <button
-            key={id}
-            className={`tab ${tab === id ? "active" : ""}`}
-            onClick={() => setTab(id)}
-          >
-            {t(`persona.tab.${id}`)}
-          </button>
-        ))}
+      <div className="page-scroll">
+        {tab === "my" && <MyPersonas agent={agent} />}
+        {tab === "community" && <CommunityPersonas agent={agent} />}
+        {tab === "create" && <CreatePersona onCreated={() => setTab("my")} />}
       </div>
-      {tab === "my" && <MyPersonas agent={agent} />}
-      {tab === "community" && <CommunityPersonas agent={agent} />}
-      {tab === "create" && <CreatePersona onCreated={() => setTab("my")} />}
     </div>
   );
 }

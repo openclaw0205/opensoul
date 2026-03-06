@@ -84,8 +84,8 @@ export default function ConfigPage({ agent: _agent }: Props) {
   const availableSections = SECTIONS.filter((s) => config[s.key] !== undefined);
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="page-shell">
+      <div className="page-header page-fixed">
         <h2>{t("config.title")}</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <p>{t("config.desc")}</p>
@@ -99,10 +99,9 @@ export default function ConfigPage({ agent: _agent }: Props) {
           </label>
         </div>
       </div>
-
-      <div style={{ display: "flex", gap: 16 }}>
+      <div className="page-split">
         {/* Left: section list */}
-        <div style={{ width: 220, flexShrink: 0 }}>
+        <div style={{ width: 220, flexShrink: 0 }} className="page-pane-scroll">
           <div className="memory-timeline">
             {availableSections.map((s) => (
               <div
@@ -123,7 +122,7 @@ export default function ConfigPage({ agent: _agent }: Props) {
         </div>
 
         {/* Right: form */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} className="page-pane-scroll">
           {selectedSection && editData !== null ? (
             <div className="card">
               <div className="card-header">
@@ -164,7 +163,6 @@ export default function ConfigPage({ agent: _agent }: Props) {
           )}
         </div>
       </div>
-
       {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );

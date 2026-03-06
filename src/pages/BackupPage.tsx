@@ -43,46 +43,47 @@ export default function BackupPage({ agent }: Props) {
   };
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="page-shell">
+      <div className="page-header page-fixed">
         <h2>{t("backup.title")}</h2>
         <p>{t("backup.desc")}</p>
       </div>
-
-      <div className="card">
-        <div className="card-header">
-          <h3>{t("backup.backupTitle")}</h3>
+      <div className="page-scroll">
+        <div className="card">
+          <div className="card-header">
+            <h3>{t("backup.backupTitle")}</h3>
+          </div>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
+            {t("backup.backupDesc")}
+          </p>
+          <button className="btn btn-primary" onClick={handleBackup}>
+            {t("backup.backupNow")}
+          </button>
+          {status && (
+            <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>{status}</p>
+          )}
+          {error && (
+            <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{error}</p>
+          )}
         </div>
-        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
-          {t("backup.backupDesc")}
-        </p>
-        <button className="btn btn-primary" onClick={handleBackup}>
-          {t("backup.backupNow")}
-        </button>
-        {status && (
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>{status}</p>
-        )}
-        {error && (
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{error}</p>
-        )}
-      </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h3>{t("backup.restoreTitle")}</h3>
+        <div className="card">
+          <div className="card-header">
+            <h3>{t("backup.restoreTitle")}</h3>
+          </div>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
+            {t("backup.restoreDesc")}
+          </p>
+          <button className="btn btn-danger" onClick={handleRestore}>
+            {t("backup.restoreBtn")}
+          </button>
+          {restoreStatus && (
+            <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>{restoreStatus}</p>
+          )}
+          {restoreError && (
+            <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{restoreError}</p>
+          )}
         </div>
-        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
-          {t("backup.restoreDesc")}
-        </p>
-        <button className="btn btn-danger" onClick={handleRestore}>
-          {t("backup.restoreBtn")}
-        </button>
-        {restoreStatus && (
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--success)" }}>{restoreStatus}</p>
-        )}
-        {restoreError && (
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{restoreError}</p>
-        )}
       </div>
     </div>
   );

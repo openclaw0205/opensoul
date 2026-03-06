@@ -45,42 +45,43 @@ export default function SkillsPage({ agent }: Props) {
   };
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="page-shell">
+      <div className="page-header page-fixed">
         <h2>{t("skills.title")}</h2>
         <p>{t("skills.desc", { count: skills.length })}</p>
       </div>
-
-      {loading ? (
-        <div>{t("common.loading")}</div>
-      ) : error ? (
-        <div className="card">
-          <p style={{ color: "var(--danger)" }}>{error}</p>
-        </div>
-      ) : skills.length === 0 ? (
-        <div className="card">
-          <p style={{ color: "var(--text-secondary)" }}>
-            {t("skills.empty")} <code>{t("skills.emptyCmd")}</code>
-          </p>
-        </div>
-      ) : (
-        <div className="skills-grid">
-          {skills.map((skill) => (
-            <div key={skill.name} className="skill-card">
-              <h4>{skill.name}</h4>
-              <p>{skill.description}</p>
-              <div className="skill-actions">
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDelete(skill.name)}
-                >
-                  {t("skills.uninstall")}
-                </button>
+      <div className="page-scroll">
+        {loading ? (
+          <div>{t("common.loading")}</div>
+        ) : error ? (
+          <div className="card">
+            <p style={{ color: "var(--danger)" }}>{error}</p>
+          </div>
+        ) : skills.length === 0 ? (
+          <div className="card">
+            <p style={{ color: "var(--text-secondary)" }}>
+              {t("skills.empty")} <code>{t("skills.emptyCmd")}</code>
+            </p>
+          </div>
+        ) : (
+          <div className="skills-grid">
+            {skills.map((skill) => (
+              <div key={skill.name} className="skill-card">
+                <h4>{skill.name}</h4>
+                <p>{skill.description}</p>
+                <div className="skill-actions">
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleDelete(skill.name)}
+                  >
+                    {t("skills.uninstall")}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
