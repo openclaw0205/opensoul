@@ -19,7 +19,7 @@ export default function MemoryPage({ agent }: Props) {
   }, [agent]);
 
   return (
-    <div>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div className="page-header">
         <h2>{t("memory.title")}</h2>
         <p>{t("memory.desc")}</p>
@@ -41,7 +41,7 @@ export default function MemoryPage({ agent }: Props) {
       </div>
 
       {tab === "daily" ? (
-        <div style={{ display: "flex", gap: 16, height: "calc(100vh - 180px)" }}>
+        <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0 }}>
           <div style={{ width: 250, flexShrink: 0, overflowY: "auto" }}>
             <div className="memory-timeline">
               {memories.map((m) => (
@@ -94,7 +94,7 @@ export default function MemoryPage({ agent }: Props) {
           </div>
         </div>
       ) : (
-        <div className="card">
+        <div className="card" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           <pre
             style={{
               whiteSpace: "pre-wrap",
