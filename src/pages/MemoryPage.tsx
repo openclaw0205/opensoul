@@ -41,8 +41,8 @@ export default function MemoryPage({ agent }: Props) {
       </div>
 
       {tab === "daily" ? (
-        <div style={{ display: "flex", gap: 16 }}>
-          <div style={{ width: 250, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 16, height: "calc(100vh - 180px)" }}>
+          <div style={{ width: 250, flexShrink: 0, overflowY: "auto" }}>
             <div className="memory-timeline">
               {memories.map((m) => (
                 <div
@@ -67,7 +67,7 @@ export default function MemoryPage({ agent }: Props) {
               )}
             </div>
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, overflowY: "auto" }}>
             {selected ? (
               <div className="card">
                 <div className="card-header">
