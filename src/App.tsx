@@ -10,6 +10,11 @@ import "./styles/global.css";
 
 type Page = "persona" | "skills" | "memory" | "backup" | "config";
 
+const LANG_OPTIONS = [
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+];
+
 function App() {
   const { t, i18n } = useTranslation();
   const [page, setPage] = useState<Page>("persona");
@@ -33,11 +38,6 @@ function App() {
     });
   }, []);
 
-  const switchLang = (lang: string) => {
-    i18n.changeLanguage(lang);
-    localStorage.setItem("opensoul-lang", lang);
-  };
-
   return (
     <div className="app-layout">
       <aside className="sidebar">
@@ -60,31 +60,39 @@ function App() {
         </nav>
 
         <div className="sidebar-footer">
-          <select
-            className="agent-selector"
-            value={activeAgent}
-            onChange={(e) => setActiveAgent(e.target.value)}
-          >
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {t("agent.label", { id: a.id })}
-              </option>
-            ))}
-          </select>
+          {agents.length > 1 && (
+            <div className="sidebar-footer-row">
+              <label className="sidebar-footer-label">🦞 {t("footer.agent")}</label>
+              <select
+                className="sidebar-select"
+                value={activeAgent}
+                onChange={(e) => setActiveAgent(e.target.value)}
+              >
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div className="lang-switcher" style={{ marginTop: 8, display: "flex", gap: 4 }}>
-            <button
-              className={`btn btn-sm ${i18n.language === "en" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => switchLang("en")}
+          <div className="sidebar-footer-row">
+            <label className="sidebar-footer-label">🌐 {t("footer.language")}</label>
+            <select
+              className="sidebar-select"
+              value={i18n.language}
+              onChange={(e) => {
+                i18n.changeLanguage(e.target.value);
+                localStorage.setItem("opensoul-lang", e.target.value);
+              }}
             >
-              EN
-            </button>
-            <button
-              className={`btn btn-sm ${i18n.language === "zh" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => switchLang("zh")}
-            >
-              中文
-            </button>
+              {LANG_OPTIONS.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </aside>

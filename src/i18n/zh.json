@@ -113,6 +113,10 @@
   "agent": {
     "label": "代理：{{id}}"
   },
+  "footer": {
+    "agent": "代理",
+    "language": "语言"
+  },
   "common": {
     "loading": "加载中..."
   },

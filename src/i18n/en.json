@@ -113,6 +113,10 @@
   "agent": {
     "label": "Agent: {{id}}"
   },
+  "footer": {
+    "agent": "Agent",
+    "language": "Lang"
+  },
   "common": {
     "loading": "Loading..."
   },
