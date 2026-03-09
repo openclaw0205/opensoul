@@ -18,19 +18,17 @@ export interface SkillInfo {
   source?: string;
 }
 
-export interface CloudSkillInfo {
+export interface ClawHubSkillInfo {
   id: string;
   name: string;
   description: string;
   tags: string[];
   version: string;
   source: string;
-  homepage?: string;
-  download_url?: string;
 }
 
-export interface CloudSkillDetail {
-  meta: CloudSkillInfo;
+export interface ClawHubSkillDetail {
+  meta: ClawHubSkillInfo;
   content: string;
 }
 
@@ -92,47 +90,34 @@ export interface SnapshotInfo {
 }
 
 export const api = {
-  // Agent management
   listAgents: () => invoke<AgentInfo[]>("list_agents"),
 
-  // Persona file operations (backup/editor)
   readPersona: (agent: string) => invoke<Persona>("read_persona", { agent }),
   savePersonaFile: (agent: string, filename: string, content: string) =>
     invoke<void>("save_persona_file", { agent, filename, content }),
 
-  // Skills
   listSkills: (agent: string) => invoke<SkillInfo[]>("list_skills", { agent }),
-  listHubSkills: () => invoke<SkillInfo[]>("list_hub_skills"),
-  fetchCloudSkills: () => invoke<CloudSkillInfo[]>("fetch_cloud_skills"),
-  fetchCloudSkillDetail: (skillId: string) =>
-    invoke<CloudSkillDetail>("fetch_cloud_skill_detail", { skillId }),
-  downloadCloudSkillToHub: (skillId: string) =>
-    invoke<string>("download_cloud_skill_to_hub", { skillId }),
-  downloadCloudSkillToPersona: (agent: string, skillId: string) =>
-    invoke<string>("download_cloud_skill_to_persona", { agent, skillId }),
-  installSkillFromHub: (agent: string, skillName: string) =>
-    invoke<string>("install_skill_from_hub", { agent, skillName }),
-  saveInstalledSkillToHub: (agent: string, skillName: string) =>
-    invoke<void>("save_installed_skill_to_hub", { agent, skillName }),
-  deleteHubSkill: (skillName: string) => invoke<void>("delete_hub_skill", { skillName }),
+  clawhubStatus: () => invoke<boolean>("clawhub_status"),
+  clawhubExplore: () => invoke<ClawHubSkillInfo[]>("clawhub_explore"),
+  clawhubSearch: (query: string) => invoke<ClawHubSkillInfo[]>("clawhub_search", { query }),
+  clawhubInspect: (skillId: string) => invoke<ClawHubSkillDetail>("clawhub_inspect", { skillId }),
+  clawhubInstall: (agent: string, skillId: string) =>
+    invoke<void>("clawhub_install", { agent, skillId }),
+  clawhubUpdateAll: (agent: string) => invoke<void>("clawhub_update_all", { agent }),
   deleteSkill: (agent: string, skillName: string) =>
     invoke<void>("delete_skill", { agent, skillName }),
 
-  // Memory
   listMemories: (agent: string) => invoke<MemoryEntry[]>("list_memories", { agent }),
   readLongTermMemory: (agent: string) => invoke<string>("read_long_term_memory", { agent }),
 
-  // Backup
   backupPersona: (agent: string, outputPath: string) =>
     invoke<string>("backup_persona", { agent, outputPath }),
   restorePersonaBackup: (agent: string, backupPath: string) =>
     invoke<void>("restore_persona_backup", { agent, backupPath }),
 
-  // Config
   readConfig: () => invoke<string>("read_config"),
   saveConfig: (content: string) => invoke<void>("save_config", { content }),
 
-  // Persona management
   listPersonas: (agent: string) => invoke<PersonaMeta[]>("list_personas", { agent }),
   createPersona: (params: {
     id: string;
@@ -172,7 +157,6 @@ export const api = {
   checkPersonaExists: (personaId: string) =>
     invoke<boolean>("check_persona_exists", { personaId }),
 
-  // Snapshots
   createSnapshot: (agent: string, personaId: string) =>
     invoke<string>("create_snapshot", { agent, personaId }),
   listSnapshots: (personaId: string) => invoke<SnapshotInfo[]>("list_snapshots", { personaId }),

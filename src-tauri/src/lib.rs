@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use tauri::command;
 
 const MAX_SNAPSHOTS: usize = 20;
-const OPENSOUL_SKILLS_INDEX_URL: &str = "https://raw.githubusercontent.com/openclaw0205/opensoul-skills/main/index.json";
 
 fn openclaw_dir() -> PathBuf {
     dirs::home_dir()
@@ -22,10 +21,6 @@ fn workspace_dir(agent: &str) -> PathBuf {
 
 fn personas_dir() -> PathBuf {
     openclaw_dir().join("personas")
-}
-
-fn skill_hub_dir() -> PathBuf {
-    openclaw_dir().join("skill-hub")
 }
 
 fn builtin_skills_dir() -> PathBuf {
@@ -46,7 +41,7 @@ fn validate_id(id: &str) -> Result<(), String> {
 }
 
 fn skill_sources() -> Vec<(&'static str, PathBuf)> {
-    vec![("hub", skill_hub_dir()), ("builtin", builtin_skills_dir())]
+    vec![("builtin", builtin_skills_dir())]
 }
 
 fn validate_persona_filename(name: &str) -> Result<(), String> {
@@ -114,7 +109,7 @@ pub struct SkillInfo {
     pub source: String,
 }
 #[derive(Serialize, Deserialize, Clone)]
-pub struct CloudSkillInfo {
+pub struct ClawHubSkillInfo {
     pub id: String,
     pub name: String,
     pub description: String,
@@ -124,15 +119,11 @@ pub struct CloudSkillInfo {
     pub version: String,
     #[serde(default)]
     pub source: String,
-    #[serde(default)]
-    pub homepage: String,
-    #[serde(default)]
-    pub download_url: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct CloudSkillDetail {
-    pub meta: CloudSkillInfo,
+pub struct ClawHubSkillDetail {
+    pub meta: ClawHubSkillInfo,
     pub content: String,
 }
 
@@ -433,81 +424,73 @@ fn collect_skills_from_dir(dir: &Path, source: &str) -> Vec<SkillInfo> {
     skills
 }
 
-fn resolve_cloud_skill_download_url(skill: &CloudSkillInfo) -> String {
-    if !skill.download_url.trim().is_empty() {
-        skill.download_url.trim().to_string()
+fn clawhub_bin() -> String {
+    "clawhub".to_string()
+}
+
+fn clawhub_available() -> bool {
+    std::process::Command::new(clawhub_bin())
+        .arg("--help")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn run_clawhub(args: &[&str], workdir: Option<&Path>) -> Result<String, String> {
+    let mut cmd = std::process::Command::new(clawhub_bin());
+    cmd.args(args);
+    if let Some(dir) = workdir {
+        cmd.current_dir(dir);
+    }
+    let out = cmd.output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).to_string())
     } else {
-        format!(
-            "https://raw.githubusercontent.com/openclaw0205/opensoul-skills/main/skills/{}/SKILL.md",
-            skill.id
-        )
+        Err(String::from_utf8_lossy(&out.stderr).to_string())
     }
 }
 
-async fn fetch_cloud_skills_index() -> Result<Vec<CloudSkillInfo>, String> {
-    let resp = reqwest::Client::new()
-        .get(OPENSOUL_SKILLS_INDEX_URL)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("Failed to fetch cloud skills: {}", resp.status()));
-    }
-    let mut skills: Vec<CloudSkillInfo> = resp.json().await.map_err(|e| e.to_string())?;
-    for skill in skills.iter_mut() {
-        if skill.source.trim().is_empty() {
-            skill.source = "opensoul".to_string();
-        }
-    }
-    Ok(skills)
+fn parse_clawhub_search_output(output: &str) -> Vec<ClawHubSkillInfo> {
+    output
+        .lines()
+        .filter(|line| !line.trim().is_empty() && !line.trim_start().starts_with('-'))
+        .filter_map(|line| {
+            let line = line.trim();
+            let mut cols = line.split_whitespace();
+            let id = cols.next()?.to_string();
+            let name = cols.next().unwrap_or(&id).to_string();
+            Some(ClawHubSkillInfo {
+                id,
+                name,
+                description: line.to_string(),
+                tags: vec![],
+                version: String::new(),
+                source: "clawhub".to_string(),
+            })
+        })
+        .collect()
 }
 
-async fn download_cloud_skill_impl(skill_id: &str) -> Result<String, String> {
-    validate_id(skill_id)?;
-    fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
-    let skills = fetch_cloud_skills_index().await?;
-    let skill = skills
+fn parse_clawhub_explore_json(output: &str) -> Result<Vec<ClawHubSkillInfo>, String> {
+    let v: serde_json::Value = serde_json::from_str(output).map_err(|e| e.to_string())?;
+    let items = v["items"].as_array().cloned().unwrap_or_default();
+    Ok(items
         .into_iter()
-        .find(|item| item.id == skill_id)
-        .ok_or_else(|| format!("Cloud skill '{}' not found", skill_id))?;
-    let skill_dir = skill_hub_dir().join(&skill.id);
-    if skill_dir.exists() {
-        fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
-    }
-    fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
-
-    let download_url = resolve_cloud_skill_download_url(&skill);
-    let resp = reqwest::Client::new()
-        .get(&download_url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("Failed to download skill '{}': {}", skill.id, resp.status()));
-    }
-    let skill_md = resp.text().await.map_err(|e| e.to_string())?;
-    fs::write(skill_dir.join("SKILL.md"), skill_md).map_err(|e| e.to_string())?;
-    fs::write(
-        skill_dir.join("hub-meta.json"),
-        serde_json::to_string_pretty(&skill).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(skill.id)
-}
-
-fn save_installed_skill_to_hub_impl(agent: &str, skill_name: &str) -> Result<(), String> {
-    validate_id(skill_name)?;
-    let src = workspace_dir(agent).join("skills").join(skill_name);
-    if !src.exists() || !src.is_dir() {
-        return Err(format!("Installed skill '{}' not found", skill_name));
-    }
-    let dst = skill_hub_dir().join(skill_name);
-    fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
-    if dst.exists() {
-        fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
-    }
-    copy_dir_recursive(&src, &dst)?;
-    Ok(())
+        .map(|item| {
+            let tags = item["tags"]
+                .as_object()
+                .map(|m| m.keys().cloned().collect())
+                .unwrap_or_else(Vec::new);
+            ClawHubSkillInfo {
+                id: item["slug"].as_str().unwrap_or("").to_string(),
+                name: item["displayName"].as_str().unwrap_or("").to_string(),
+                description: item["summary"].as_str().unwrap_or("").to_string(),
+                tags,
+                version: item["latestVersion"]["version"].as_str().unwrap_or("").to_string(),
+                source: "clawhub".to_string(),
+            }
+        })
+        .collect())
 }
 
 fn install_skill_from_sources(agent: &str, skill_name: &str) -> Result<String, String> {
@@ -515,21 +498,22 @@ fn install_skill_from_sources(agent: &str, skill_name: &str) -> Result<String, S
     let dst = workspace_dir(agent).join("skills").join(skill_name);
     fs::create_dir_all(dst.parent().ok_or("Invalid skill target")?).map_err(|e| e.to_string())?;
 
-    let mut found: Option<(String, PathBuf)> = None;
     for (source, dir) in skill_sources() {
         let candidate = dir.join(skill_name);
         if candidate.exists() && candidate.is_dir() {
-            found = Some((source.to_string(), candidate));
-            break;
+            if dst.exists() {
+                fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+            }
+            copy_dir_recursive(&candidate, &dst)?;
+            return Ok(source.to_string());
         }
     }
 
-    let (source, src) = found.ok_or_else(|| format!("Skill '{}' not found in hub", skill_name))?;
-    if dst.exists() {
-        fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
-    }
-    copy_dir_recursive(&src, &dst)?;
-    Ok(source)
+    run_clawhub(
+        &["install", skill_name, "--force", "--no-input", "--workdir", workspace_dir(agent).to_string_lossy().as_ref()],
+        None,
+    )?;
+    Ok("clawhub".to_string())
 }
 
 fn auto_install_persona_skills(agent: &str, persona_id: &str) -> Result<Vec<String>, String> {
@@ -1072,72 +1056,56 @@ fn list_skills(agent: String) -> Result<Vec<SkillInfo>, String> {
 }
 
 #[command]
-async fn fetch_cloud_skills() -> Result<Vec<CloudSkillInfo>, String> {
-    fetch_cloud_skills_index().await
+fn clawhub_status() -> Result<bool, String> {
+    Ok(clawhub_available())
 }
 
 #[command]
-async fn fetch_cloud_skill_detail(skill_id: String) -> Result<CloudSkillDetail, String> {
+fn clawhub_explore() -> Result<Vec<ClawHubSkillInfo>, String> {
+    let output = run_clawhub(&["explore", "--json", "--no-input"], None)?;
+    parse_clawhub_explore_json(&output)
+}
+
+#[command]
+fn clawhub_search(query: String) -> Result<Vec<ClawHubSkillInfo>, String> {
+    let output = run_clawhub(&["search", &query, "--limit", "20", "--no-input"], None)?;
+    Ok(parse_clawhub_search_output(&output))
+}
+
+#[command]
+fn clawhub_inspect(skill_id: String) -> Result<ClawHubSkillDetail, String> {
     validate_id(&skill_id)?;
-    let skills = fetch_cloud_skills_index().await?;
-    let skill = skills
-        .into_iter()
-        .find(|item| item.id == skill_id)
-        .ok_or_else(|| format!("Cloud skill '{}' not found", skill_id))?;
-    let download_url = resolve_cloud_skill_download_url(&skill);
-    let resp = reqwest::Client::new()
-        .get(&download_url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("Failed to fetch skill detail '{}': {}", skill.id, resp.status()));
-    }
-    let content = resp.text().await.map_err(|e| e.to_string())?;
-    Ok(CloudSkillDetail { meta: skill, content })
+    let output = run_clawhub(&["inspect", &skill_id, "--file", "SKILL.md", "--json", "--no-input"], None)?;
+    let v: serde_json::Value = serde_json::from_str(&output).map_err(|e| e.to_string())?;
+    let tags = v["skill"]["tags"]
+        .as_object()
+        .map(|m| m.keys().cloned().collect())
+        .unwrap_or_else(Vec::new);
+    Ok(ClawHubSkillDetail {
+        meta: ClawHubSkillInfo {
+            id: v["skill"]["slug"].as_str().unwrap_or("").to_string(),
+            name: v["skill"]["displayName"].as_str().unwrap_or("").to_string(),
+            description: v["skill"]["summary"].as_str().unwrap_or("").to_string(),
+            tags,
+            version: v["version"]["version"].as_str().unwrap_or("").to_string(),
+            source: "clawhub".to_string(),
+        },
+        content: v["file"]["content"].as_str().unwrap_or("").to_string(),
+    })
 }
 
 #[command]
-async fn download_cloud_skill_to_hub(skill_id: String) -> Result<String, String> {
-    download_cloud_skill_impl(&skill_id).await
+fn clawhub_install(agent: String, skill_id: String) -> Result<(), String> {
+    validate_id(&skill_id)?;
+    let workdir = workspace_dir(&agent);
+    run_clawhub(&["install", &skill_id, "--force", "--no-input"], Some(&workdir))?;
+    Ok(())
 }
 
 #[command]
-async fn download_cloud_skill_to_persona(agent: String, skill_id: String) -> Result<String, String> {
-    let skill_name = download_cloud_skill_impl(&skill_id).await?;
-    install_skill_from_sources(&agent, &skill_name)?;
-    Ok(skill_name)
-}
-
-#[command]
-fn list_hub_skills() -> Result<Vec<SkillInfo>, String> {
-    fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
-    let mut merged = std::collections::BTreeMap::<String, SkillInfo>::new();
-    for (source, dir) in skill_sources() {
-        for skill in collect_skills_from_dir(&dir, source) {
-            merged.entry(skill.name.clone()).or_insert(skill);
-        }
-    }
-    Ok(merged.into_values().collect())
-}
-
-#[command]
-fn install_skill_from_hub(agent: String, skill_name: String) -> Result<String, String> {
-    install_skill_from_sources(&agent, &skill_name)
-}
-
-#[command]
-fn save_installed_skill_to_hub(agent: String, skill_name: String) -> Result<(), String> {
-    save_installed_skill_to_hub_impl(&agent, &skill_name)
-}
-
-#[command]
-fn delete_hub_skill(skill_name: String) -> Result<(), String> {
-    validate_id(&skill_name)?;
-    let p = skill_hub_dir().join(&skill_name);
-    if p.exists() {
-        fs::remove_dir_all(&p).map_err(|e| e.to_string())?;
-    }
+fn clawhub_update_all(agent: String) -> Result<(), String> {
+    let workdir = workspace_dir(&agent);
+    run_clawhub(&["update", "--all", "--force", "--no-input"], Some(&workdir))?;
     Ok(())
 }
 
@@ -1282,14 +1250,12 @@ pub fn run() {
             read_persona,
             save_persona_file,
             list_skills,
-            fetch_cloud_skills,
-            fetch_cloud_skill_detail,
-            download_cloud_skill_to_hub,
-            download_cloud_skill_to_persona,
-            list_hub_skills,
-            install_skill_from_hub,
-            save_installed_skill_to_hub,
-            delete_hub_skill,
+            clawhub_status,
+            clawhub_explore,
+            clawhub_search,
+            clawhub_inspect,
+            clawhub_install,
+            clawhub_update_all,
             delete_skill,
             list_memories,
             read_long_term_memory,
