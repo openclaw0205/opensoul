@@ -129,6 +129,7 @@
     "searchPlaceholder": "Search skills, e.g. github / notion / browser automation",
     "searchBtn": "Search",
     "resetSearch": "Reset",
+    "loadingCloud": "Loading ClawHub list...",
     "versionLabel": "Version",
     "installFromClawhub": "Install from ClawHub",
     "reinstall": "Reinstall",

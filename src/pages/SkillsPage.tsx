@@ -20,6 +20,8 @@ export default function SkillsPage({ agent }: Props) {
   const [workingSkill, setWorkingSkill] = useState<string | null>(null);
   const [clawhubReady, setClawhubReady] = useState(false);
   const [query, setQuery] = useState("");
+  const [cloudLoaded, setCloudLoaded] = useState(false);
+  const [cloudLoading, setCloudLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -39,17 +41,10 @@ export default function SkillsPage({ agent }: Props) {
       setInstalled(installedSkills);
       setActivePersona(personas.find((p) => p.is_active) ?? null);
       setClawhubReady(ready);
-      if (ready) {
-        try {
-          setCloudSkills(await api.clawhubExplore());
-          setCloudError("");
-        } catch (e: any) {
-          setCloudSkills([]);
-          setCloudError(e?.toString() || "Failed to load ClawHub skills");
-        }
-      } else {
+      if (!ready) {
         setCloudSkills([]);
         setCloudError(t("skills.clawhubMissing"));
+        setCloudLoaded(false);
       }
     } catch (e: any) {
       setError(e?.toString() || "Failed to load skills");
@@ -57,9 +52,37 @@ export default function SkillsPage({ agent }: Props) {
     setLoading(false);
   };
 
+  const loadCloud = async (force: boolean = false) => {
+    if (!clawhubReady) {
+      setCloudSkills([]);
+      setCloudError(t("skills.clawhubMissing"));
+      return;
+    }
+    if (cloudLoaded && !force) return;
+    setCloudLoading(true);
+    setCloudError("");
+    try {
+      setCloudSkills(await api.clawhubExplore());
+      setCloudLoaded(true);
+    } catch (e: any) {
+      setCloudSkills([]);
+      setCloudError(e?.toString() || "Failed to load ClawHub skills");
+    }
+    setCloudLoading(false);
+  };
+
   useEffect(() => {
+    setCloudLoaded(false);
+    setCloudSkills([]);
+    setCloudError("");
     loadBase();
   }, [agent]);
+
+  useEffect(() => {
+    if (tab === "cloud" && clawhubReady && !cloudLoaded && !cloudLoading) {
+      loadCloud();
+    }
+  }, [tab, clawhubReady, cloudLoaded, cloudLoading]);
 
   const installedSet = useMemo(() => new Set(installed.map((s) => s.name)), [installed]);
   const cloudSet = useMemo(() => new Set(cloudSkills.map((s) => s.id)), [cloudSkills]);
@@ -90,6 +113,7 @@ export default function SkillsPage({ agent }: Props) {
       await api.clawhubInstall(agent, skillId);
       showToast(t("skills.installedFromClawhub", { name: skillId }));
       await loadBase();
+      if (tab === "cloud") await loadCloud(true);
     } catch (e: any) {
       showToast(e?.toString() || "Failed to install", "error");
     }
@@ -102,6 +126,7 @@ export default function SkillsPage({ agent }: Props) {
       await api.clawhubUpdateAll(agent);
       showToast(t("skills.updatedAll"));
       await loadBase();
+      if (tab === "cloud") await loadCloud(true);
     } catch (e: any) {
       showToast(e?.toString() || "Failed to update", "error");
     }
@@ -110,15 +135,16 @@ export default function SkillsPage({ agent }: Props) {
 
   const handleSearch = async () => {
     if (!clawhubReady) return;
-    setLoading(true);
+    setCloudLoading(true);
     setCloudError("");
     try {
       setCloudSkills(query.trim() ? await api.clawhubSearch(query.trim()) : await api.clawhubExplore());
+      setCloudLoaded(true);
     } catch (e: any) {
       setCloudSkills([]);
       setCloudError(e?.toString() || "Failed to search ClawHub");
     }
-    setLoading(false);
+    setCloudLoading(false);
   };
 
   const renderMatchBadge = (name: string) => {
@@ -242,11 +268,13 @@ export default function SkillsPage({ agent }: Props) {
                   {cloudError && <p className="cloud-status-error">{cloudError}</p>}
                   <div className="cloud-search-row">
                     <input className="form-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("skills.searchPlaceholder")} />
-                    <button className="btn btn-secondary" onClick={handleSearch} disabled={!clawhubReady || loading}>{t("skills.searchBtn")}</button>
-                    <button className="btn btn-secondary" onClick={() => { setQuery(""); loadBase(); }} disabled={loading}>{t("skills.resetSearch")}</button>
+                    <button className="btn btn-secondary" onClick={handleSearch} disabled={!clawhubReady || cloudLoading}>{cloudLoading ? t("skills.loadingCloud") : t("skills.searchBtn")}</button>
+                    <button className="btn btn-secondary" onClick={() => { setQuery(""); loadCloud(true); }} disabled={cloudLoading}>{t("skills.resetSearch")}</button>
                   </div>
                 </div>
-                {cloudSkills.length === 0 ? (
+                {cloudLoading ? (
+                  <div className="card"><p style={{ color: "var(--text-secondary)" }}>{t("skills.loadingCloud")}</p></div>
+                ) : cloudSkills.length === 0 ? (
                   <div className="card"><p style={{ color: "var(--text-secondary)" }}>{t("skills.cloudEmptyOfficial")}</p></div>
                 ) : (
                   <div className="skills-grid">

@@ -129,6 +129,7 @@
     "searchPlaceholder": "搜索 skills，例如 github / notion / browser automation",
     "searchBtn": "搜索",
     "resetSearch": "重置",
+    "loadingCloud": "正在加载 ClawHub 列表...",
     "versionLabel": "版本",
     "installFromClawhub": "从 ClawHub 安装",
     "reinstall": "重新安装",
