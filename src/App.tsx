@@ -21,12 +21,12 @@ function App() {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [activeAgent, setActiveAgent] = useState("main");
 
-  const NAV_ITEMS: { id: Page; icon: string; label: string }[] = [
-    { id: "persona", icon: "🧠", label: t("nav.persona") },
-    { id: "skills", icon: "⚡", label: t("nav.skills") },
-    { id: "memory", icon: "📚", label: t("nav.memory") },
-    { id: "backup", icon: "💾", label: t("nav.backup") },
-    { id: "config", icon: "⚙️", label: t("nav.config") },
+  const NAV_ITEMS: { id: Page; label: string }[] = [
+    { id: "persona", label: t("nav.persona") },
+    { id: "skills", label: t("nav.skills") },
+    { id: "memory", label: t("nav.memory") },
+    { id: "backup", label: t("nav.backup") },
+    { id: "config", label: t("nav.config") },
   ];
 
   useEffect(() => {
@@ -42,7 +42,7 @@ function App() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <h1>🦞 {t("app.title")}</h1>
+          <h1>{t("app.title")}</h1>
           <span>{t("app.subtitle")}</span>
         </div>
 
@@ -53,7 +53,6 @@ function App() {
               className={`nav-item ${page === item.id ? "active" : ""}`}
               onClick={() => setPage(item.id)}
             >
-              <span>{item.icon}</span>
               {item.label}
             </button>
           ))}
@@ -62,7 +61,7 @@ function App() {
         <div className="sidebar-footer">
           {agents.length > 1 && (
             <div className="sidebar-footer-row">
-              <label className="sidebar-footer-label">🦞 {t("footer.agent")}</label>
+              <label className="sidebar-footer-label">{t("footer.agent")}</label>
               <select
                 className="sidebar-select"
                 value={activeAgent}
@@ -78,7 +77,7 @@ function App() {
           )}
 
           <div className="sidebar-footer-row">
-            <label className="sidebar-footer-label">🌐 {t("footer.language")}</label>
+            <label className="sidebar-footer-label">{t("footer.language")}</label>
             <select
               className="sidebar-select"
               value={i18n.language}

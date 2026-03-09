@@ -11,7 +11,7 @@
     "config": "配置"
   },
   "persona": {
-    "title": "🧠 人格",
+    "title": "人格",
     "desc": "管理、切换和创建 AI 人格",
     "tab": {
       "my": "我的人格",
@@ -21,15 +21,15 @@
     "active": "使用中",
     "switch": "切换",
     "switching": "切换中...",
-    "switched": "✅ 已切换到「{{name}}」",
-    "switchedWithSkills": "✅ 已切换到「{{name}}」，并自动补齐 {{count}} 个技能：{{skills}}",
+    "switched": "已切换到「{{name}}」",
+    "switchedWithSkills": "已切换到「{{name}}」，并自动补齐 {{count}} 个技能：{{skills}}",
     "delete": "删除",
     "confirmDelete": "确定删除人格「{{name}}」？所有记忆和技能都会被删除。",
     "deleted": "已删除「{{name}}」",
-    "saveCurrent": "💾 保存当前为人格",
+    "saveCurrent": "保存当前为人格",
     "saveCurrentPrompt": "输入人格 ID（英文、数字、下划线）",
     "namePrompt": "输入显示名称",
-    "savedCurrent": "✅ 已保存为「{{name}}」",
+    "savedCurrent": "已保存为「{{name}}」",
     "empty": "暂无人格",
     "emptyHint": "点击「保存当前为人格」将当前配置保存，或从社区下载人格",
     "memories": "条记忆",
@@ -39,12 +39,12 @@
     "viewSnapshots": "快照历史",
     "backToList": "返回列表",
     "snapshotsTitle": "「{{name}}」的快照历史",
-    "createSnapshotBtn": "📌 手动创建快照",
-    "snapshotCreated": "✅ 快照已创建：{{id}}",
+    "createSnapshotBtn": "手动创建快照",
+    "snapshotCreated": "快照已创建：{{id}}",
     "noSnapshots": "暂无快照记录",
     "restore": "回滚",
     "confirmRestore": "确定回滚到快照 {{id}}？当前状态会先自动备份。",
-    "snapshotRestored": "✅ 已回滚到快照 {{id}}",
+    "snapshotRestored": "已回滚到快照 {{id}}",
     "reason": {
       "switch": "切换人格时自动备份",
       "pre-download": "下载覆盖前自动备份",
@@ -53,12 +53,12 @@
       "unknown": "未知"
     },
     "overwriteConfirm": "检测到本地已有「{{name}}」，将先自动备份再覆盖。确定继续？",
-    "downloadedWithBackup": "✅ 已备份并覆盖「{{name}}」",
+    "downloadedWithBackup": "已备份并覆盖「{{name}}」",
     "redownload": "重新下载",
     "installed": "已安装",
     "download": "下载",
     "downloading": "下载中...",
-    "downloaded": "✅ 已下载「{{name}}」",
+    "downloaded": "已下载「{{name}}」",
     "communityError": "无法加载社区人格",
     "communityEmpty": "社区暂无人格。敬请期待！",
     "createTitle": "创建新人格",
@@ -88,14 +88,14 @@
     "soulPlaceholder": "定义 AI 的性格、说话风格、价值观...",
     "identityPlaceholder": "定义 AI 的名字、身份、背景...",
     "agentsPlaceholder": "定义 AI 的行为规则...",
-    "createBtn": "✨ 创建",
+    "createBtn": "创建",
     "creating": "创建中...",
-    "created": "✅ 已创建「{{name}}」",
+    "created": "已创建「{{name}}」",
     "createValidation": "ID 和名称不能为空",
     "createIdInvalid": "ID 只能包含英文字母、数字、下划线和连字符"
   },
   "skills": {
-    "title": "⚡ 技能",
+    "title": "技能",
     "descOfficial": "基于官方 ClawHub 管理技能 · 已安装 {{count}} 个 · 云端 {{cloudCount}} 个",
     "tab": {
       "overview": "概览",
@@ -133,12 +133,12 @@
     "versionLabel": "版本",
     "installFromClawhub": "从 ClawHub 安装",
     "reinstall": "重新安装",
-    "installedFromClawhub": "✅ 已从 ClawHub 安装技能「{{name}}」",
+    "installedFromClawhub": "已从 ClawHub 安装技能「{{name}}」",
     "updateAll": "更新全部已安装技能",
-    "updatedAll": "✅ 已通过 ClawHub 更新全部已安装技能"
+    "updatedAll": "已通过 ClawHub 更新全部已安装技能"
   },
   "memory": {
-    "title": "📚 记忆",
+    "title": "记忆",
     "desc": "浏览每日记忆和长期记忆",
     "daily": "每日笔记",
     "longterm": "长期记忆",
@@ -147,20 +147,20 @@
     "noLongterm": "暂无长期记忆"
   },
   "backup": {
-    "title": "💾 备份与恢复",
+    "title": "备份与恢复",
     "desc": "备份和恢复你的 AI 人格",
     "backupTitle": "备份",
     "backupDesc": "创建当前人格的快照（SOUL.md、IDENTITY.md、记忆、技能等）",
-    "backupNow": "📦 立即备份",
-    "backupSuccess": "✅ 备份已保存至：{{path}}",
+    "backupNow": "立即备份",
+    "backupSuccess": "备份已保存至：{{path}}",
     "backing": "备份中...",
     "restoreTitle": "恢复",
     "restoreDesc": "从之前的备份文件恢复人格。这将覆盖当前文件。",
-    "restoreBtn": "🔄 从备份恢复",
+    "restoreBtn": "从备份恢复",
     "restorePrompt": "输入备份文件路径（如 ~/Desktop/opensoul-backup-main-2026-03-06.tar.gz）",
     "restoreConfirm": "恢复将覆盖当前所有文件，确定继续？",
     "restoring": "恢复中...",
-    "restoreSuccess": "✅ 恢复成功！"
+    "restoreSuccess": "恢复成功！"
   },
   "agent": {
     "label": "代理：{{id}}"
@@ -173,11 +173,11 @@
     "loading": "加载中..."
   },
   "config": {
-    "title": "⚙️ 配置",
+    "title": "配置",
     "desc": "可视化编辑 OpenClaw 配置文件",
     "back": "返回",
     "save": "保存",
-    "saved": "✅ 配置已保存",
+    "saved": "配置已保存",
     "unsaved": "未保存",
     "discardConfirm": "有未保存的更改，确定放弃？",
     "selectSection": "选择左侧配置项进行编辑",

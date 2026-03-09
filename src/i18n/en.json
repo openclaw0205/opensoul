@@ -11,7 +11,7 @@
     "config": "Config"
   },
   "persona": {
-    "title": "🧠 Persona",
+    "title": "Persona",
     "desc": "Manage, switch, and create AI personas",
     "tab": {
       "my": "My Personas",
@@ -21,15 +21,15 @@
     "active": "Active",
     "switch": "Switch",
     "switching": "Switching...",
-    "switched": "✅ Switched to \"{{name}}\"",
-    "switchedWithSkills": "✅ Switched to \"{{name}}\" and auto-installed {{count}} skill(s): {{skills}}",
+    "switched": "Switched to \"{{name}}\"",
+    "switchedWithSkills": "Switched to \"{{name}}\" and auto-installed {{count}} skill(s): {{skills}}",
     "delete": "Delete",
     "confirmDelete": "Delete persona \"{{name}}\"? All memories and skills will be removed.",
     "deleted": "Deleted \"{{name}}\"",
-    "saveCurrent": "💾 Save Current as Persona",
+    "saveCurrent": "Save Current as Persona",
     "saveCurrentPrompt": "Enter persona ID (letters, numbers, hyphens)",
     "namePrompt": "Enter display name",
-    "savedCurrent": "✅ Saved as \"{{name}}\"",
+    "savedCurrent": "Saved as \"{{name}}\"",
     "empty": "No personas yet",
     "emptyHint": "Save your current config as a persona, or download one from the community",
     "memories": "memories",
@@ -39,12 +39,12 @@
     "viewSnapshots": "Snapshots",
     "backToList": "Back",
     "snapshotsTitle": "Snapshots for \"{{name}}\"",
-    "createSnapshotBtn": "📌 Create Snapshot",
-    "snapshotCreated": "✅ Snapshot created: {{id}}",
+    "createSnapshotBtn": "Create Snapshot",
+    "snapshotCreated": "Snapshot created: {{id}}",
     "noSnapshots": "No snapshots yet",
     "restore": "Restore",
     "confirmRestore": "Restore to snapshot {{id}}? Current state will be auto-backed up first.",
-    "snapshotRestored": "✅ Restored to snapshot {{id}}",
+    "snapshotRestored": "Restored to snapshot {{id}}",
     "reason": {
       "switch": "Auto-backup on persona switch",
       "pre-download": "Auto-backup before download overwrite",
@@ -53,12 +53,12 @@
       "unknown": "Unknown"
     },
     "overwriteConfirm": "\"{{name}}\" exists locally. It will be backed up before overwriting. Continue?",
-    "downloadedWithBackup": "✅ Backed up and updated \"{{name}}\"",
+    "downloadedWithBackup": "Backed up and updated \"{{name}}\"",
     "redownload": "Re-download",
     "installed": "Installed",
     "download": "Download",
     "downloading": "Downloading...",
-    "downloaded": "✅ Downloaded \"{{name}}\"",
+    "downloaded": "Downloaded \"{{name}}\"",
     "communityError": "Failed to load community personas",
     "communityEmpty": "No community personas yet. Stay tuned!",
     "createTitle": "Create New Persona",
@@ -88,14 +88,14 @@
     "soulPlaceholder": "Define personality, tone, values...",
     "identityPlaceholder": "Define name, identity, background...",
     "agentsPlaceholder": "Define behavior rules...",
-    "createBtn": "✨ Create",
+    "createBtn": "Create",
     "creating": "Creating...",
-    "created": "✅ Created \"{{name}}\"",
+    "created": "Created \"{{name}}\"",
     "createValidation": "ID and name are required",
     "createIdInvalid": "ID can only contain letters, numbers, hyphens, and underscores"
   },
   "skills": {
-    "title": "⚡ Skills",
+    "title": "Skills",
     "descOfficial": "Manage skills via official ClawHub · {{count}} installed · {{cloudCount}} in cloud",
     "tab": {
       "overview": "Overview",
@@ -133,12 +133,12 @@
     "versionLabel": "Version",
     "installFromClawhub": "Install from ClawHub",
     "reinstall": "Reinstall",
-    "installedFromClawhub": "✅ Installed \"{{name}}\" from ClawHub",
+    "installedFromClawhub": "Installed \"{{name}}\" from ClawHub",
     "updateAll": "Update All Installed Skills",
-    "updatedAll": "✅ Updated all installed skills via ClawHub"
+    "updatedAll": "Updated all installed skills via ClawHub"
   },
   "memory": {
-    "title": "📚 Memory",
+    "title": "Memory",
     "desc": "Browse daily memories and long-term memory",
     "daily": "Daily Notes",
     "longterm": "MEMORY.md",
@@ -147,20 +147,20 @@
     "noLongterm": "No long-term memory found"
   },
   "backup": {
-    "title": "💾 Backup & Restore",
+    "title": "Backup & Restore",
     "desc": "Backup and restore your AI persona",
     "backupTitle": "Backup",
     "backupDesc": "Create a snapshot of the current persona (SOUL.md, IDENTITY.md, memory, skills, etc.)",
-    "backupNow": "📦 Backup Now",
-    "backupSuccess": "✅ Backup saved to: {{path}}",
+    "backupNow": "Backup Now",
+    "backupSuccess": "Backup saved to: {{path}}",
     "backing": "Backing up...",
     "restoreTitle": "Restore",
     "restoreDesc": "Restore persona from a previous backup file. This will overwrite current files.",
-    "restoreBtn": "🔄 Restore from Backup",
+    "restoreBtn": "Restore from Backup",
     "restorePrompt": "Enter backup file path (e.g. ~/Desktop/opensoul-backup-main-2026-03-06.tar.gz)",
     "restoreConfirm": "This will overwrite all current files. Continue?",
     "restoring": "Restoring...",
-    "restoreSuccess": "✅ Restored successfully!"
+    "restoreSuccess": "Restored successfully!"
   },
   "agent": {
     "label": "Agent: {{id}}"
@@ -173,11 +173,11 @@
     "loading": "Loading..."
   },
   "config": {
-    "title": "⚙️ Config",
+    "title": "Config",
     "desc": "Visual editor for OpenClaw configuration",
     "back": "Back",
     "save": "Save",
-    "saved": "✅ Config saved",
+    "saved": "Config saved",
     "unsaved": "Unsaved",
     "discardConfirm": "You have unsaved changes. Discard?",
     "selectSection": "Select a section on the left to edit",
