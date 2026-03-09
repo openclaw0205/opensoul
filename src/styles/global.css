@@ -709,6 +709,18 @@ body {
   gap: 8px;
 }
 
+.cloud-status-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cloud-status-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--danger);
+  word-break: break-word;
+}
+
 /* Create form */
 .create-form {
   display: flex;

@@ -489,6 +489,21 @@ async fn download_cloud_skill_impl(skill_id: &str) -> Result<String, String> {
     Ok(skill.id)
 }
 
+fn save_installed_skill_to_hub_impl(agent: &str, skill_name: &str) -> Result<(), String> {
+    validate_id(skill_name)?;
+    let src = workspace_dir(agent).join("skills").join(skill_name);
+    if !src.exists() || !src.is_dir() {
+        return Err(format!("Installed skill '{}' not found", skill_name));
+    }
+    let dst = skill_hub_dir().join(skill_name);
+    fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
+    if dst.exists() {
+        fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+    }
+    copy_dir_recursive(&src, &dst)?;
+    Ok(())
+}
+
 fn install_skill_from_sources(agent: &str, skill_name: &str) -> Result<String, String> {
     validate_id(skill_name)?;
     let dst = workspace_dir(agent).join("skills").join(skill_name);
@@ -1085,6 +1100,11 @@ fn install_skill_from_hub(agent: String, skill_name: String) -> Result<String, S
 }
 
 #[command]
+fn save_installed_skill_to_hub(agent: String, skill_name: String) -> Result<(), String> {
+    save_installed_skill_to_hub_impl(&agent, &skill_name)
+}
+
+#[command]
 fn delete_hub_skill(skill_name: String) -> Result<(), String> {
     validate_id(&skill_name)?;
     let p = skill_hub_dir().join(&skill_name);
@@ -1240,6 +1260,7 @@ pub fn run() {
             download_cloud_skill_to_persona,
             list_hub_skills,
             install_skill_from_hub,
+            save_installed_skill_to_hub,
             delete_hub_skill,
             delete_skill,
             list_memories,

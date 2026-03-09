@@ -105,6 +105,8 @@ export const api = {
     invoke<string>("download_cloud_skill_to_persona", { agent, skillId }),
   installSkillFromHub: (agent: string, skillName: string) =>
     invoke<string>("install_skill_from_hub", { agent, skillName }),
+  saveInstalledSkillToHub: (agent: string, skillName: string) =>
+    invoke<void>("save_installed_skill_to_hub", { agent, skillName }),
   deleteHubSkill: (skillName: string) => invoke<void>("delete_hub_skill", { skillName }),
   deleteSkill: (agent: string, skillName: string) =>
     invoke<void>("delete_skill", { agent, skillName }),
