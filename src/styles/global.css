@@ -104,7 +104,6 @@ body {
   background: var(--bg-hover);
   border-color: rgba(124, 92, 252, 0.16);
   color: var(--text-primary);
-  transform: translateY(-1px);
 }
 
 .nav-item.active {
