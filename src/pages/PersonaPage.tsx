@@ -94,8 +94,16 @@ function MyPersonas({ agent }: { agent: string }) {
     if (switching) return;
     setSwitching(id);
     try {
-      await api.switchPersona(agent, id);
-      toast.show(t("persona.switched", { name: id }));
+      const installedSkills = await api.switchPersona(agent, id);
+      if (installedSkills.length > 0) {
+        toast.show(t("persona.switchedWithSkills", {
+          name: id,
+          count: installedSkills.length,
+          skills: installedSkills.join(", "),
+        }));
+      } else {
+        toast.show(t("persona.switched", { name: id }));
+      }
       await load();
     } catch (e: any) {
       toast.show(e?.toString() || "Error", "error");

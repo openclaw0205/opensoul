@@ -409,6 +409,48 @@ fn collect_skills_from_dir(dir: &Path, source: &str) -> Vec<SkillInfo> {
     skills
 }
 
+fn install_skill_from_sources(agent: &str, skill_name: &str) -> Result<String, String> {
+    validate_id(skill_name)?;
+    let dst = workspace_dir(agent).join("skills").join(skill_name);
+    fs::create_dir_all(dst.parent().ok_or("Invalid skill target")?).map_err(|e| e.to_string())?;
+
+    let mut found: Option<(String, PathBuf)> = None;
+    for (source, dir) in skill_sources() {
+        let candidate = dir.join(skill_name);
+        if candidate.exists() && candidate.is_dir() {
+            found = Some((source.to_string(), candidate));
+            break;
+        }
+    }
+
+    let (source, src) = found.ok_or_else(|| format!("Skill '{}' not found in hub", skill_name))?;
+    if dst.exists() {
+        fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+    }
+    copy_dir_recursive(&src, &dst)?;
+    Ok(source)
+}
+
+fn auto_install_persona_skills(agent: &str, persona_id: &str) -> Result<Vec<String>, String> {
+    let meta = read_persona_meta_json(persona_id);
+    let required = normalize_string_list(meta.get("skills").and_then(|v| v.get("required")));
+    let recommended = normalize_string_list(meta.get("skills").and_then(|v| v.get("recommended")));
+    let skills_dir = workspace_dir(agent).join("skills");
+    fs::create_dir_all(&skills_dir).map_err(|e| e.to_string())?;
+
+    let mut installed = Vec::new();
+    for skill_name in required.into_iter().chain(recommended.into_iter()) {
+        let dst = skills_dir.join(&skill_name);
+        if dst.exists() {
+            continue;
+        }
+        if install_skill_from_sources(agent, &skill_name).is_ok() {
+            installed.push(skill_name);
+        }
+    }
+    Ok(installed)
+}
+
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
     fs::create_dir_all(dst).map_err(|e| e.to_string())?;
     for entry in fs::read_dir(src).map_err(|e| e.to_string())?.flatten() {
@@ -567,7 +609,7 @@ fn create_persona(
 }
 
 #[command]
-fn switch_persona(agent: String, persona_id: String) -> Result<(), String> {
+fn switch_persona(agent: String, persona_id: String) -> Result<Vec<String>, String> {
     validate_id(&persona_id)?;
     let ws = workspace_dir(&agent);
     if !persona_current_dir(&persona_id).exists() {
@@ -590,10 +632,11 @@ fn switch_persona(agent: String, persona_id: String) -> Result<(), String> {
     }
     load_dir_to_workspace(&persona_current_dir(&persona_id), &ws)?;
     fs::write(ws.join(".active-persona"), &persona_id).map_err(|e| e.to_string())?;
+    let installed_skills = auto_install_persona_skills(&agent, &persona_id)?;
     let mut m = read_persona_meta_json(&persona_id);
     m["last_switched_at"] = serde_json::json!(timestamp_human());
     write_persona_meta_json(&persona_id, &m)?;
-    Ok(())
+    Ok(installed_skills)
 }
 
 #[command]
@@ -941,25 +984,7 @@ fn list_hub_skills() -> Result<Vec<SkillInfo>, String> {
 
 #[command]
 fn install_skill_from_hub(agent: String, skill_name: String) -> Result<String, String> {
-    validate_id(&skill_name)?;
-    let dst = workspace_dir(&agent).join("skills").join(&skill_name);
-    fs::create_dir_all(dst.parent().ok_or("Invalid skill target")?).map_err(|e| e.to_string())?;
-
-    let mut found: Option<(String, PathBuf)> = None;
-    for (source, dir) in skill_sources() {
-        let candidate = dir.join(&skill_name);
-        if candidate.exists() && candidate.is_dir() {
-            found = Some((source.to_string(), candidate));
-            break;
-        }
-    }
-
-    let (source, src) = found.ok_or_else(|| format!("Skill '{}' not found in hub", skill_name))?;
-    if dst.exists() {
-        fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
-    }
-    copy_dir_recursive(&src, &dst)?;
-    Ok(source)
+    install_skill_from_sources(&agent, &skill_name)
 }
 
 #[command]

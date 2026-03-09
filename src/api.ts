@@ -120,7 +120,7 @@ export const api = {
     skillPack: PersonaSkillPack;
   }) => invoke<void>("create_persona", params),
   switchPersona: (agent: string, personaId: string) =>
-    invoke<void>("switch_persona", { agent, personaId }),
+    invoke<string[]>("switch_persona", { agent, personaId }),
   deletePersona: (agent: string, personaId: string) =>
     invoke<void>("delete_persona", { agent, personaId }),
   saveCurrentAsPersona: (

@@ -22,6 +22,7 @@
     "switch": "Switch",
     "switching": "Switching...",
     "switched": "✅ Switched to \"{{name}}\"",
+    "switchedWithSkills": "✅ Switched to \"{{name}}\" and auto-installed {{count}} skill(s): {{skills}}",
     "delete": "Delete",
     "confirmDelete": "Delete persona \"{{name}}\"? All memories and skills will be removed.",
     "deleted": "Deleted \"{{name}}\"",
