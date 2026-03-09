@@ -27,12 +27,6 @@ export interface ClawHubSkillInfo {
   source: string;
 }
 
-export interface ClawHubSkillDetail {
-  meta: ClawHubSkillInfo;
-  content: string;
-  truncated?: boolean;
-}
-
 export interface MemoryEntry {
   filename: string;
   date: string;
@@ -101,7 +95,6 @@ export const api = {
   clawhubStatus: () => invoke<boolean>("clawhub_status"),
   clawhubExplore: () => invoke<ClawHubSkillInfo[]>("clawhub_explore"),
   clawhubSearch: (query: string) => invoke<ClawHubSkillInfo[]>("clawhub_search", { query }),
-  clawhubInspect: (skillId: string) => invoke<ClawHubSkillDetail>("clawhub_inspect", { skillId }),
   clawhubInstall: (agent: string, skillId: string) =>
     invoke<void>("clawhub_install", { agent, skillId }),
   clawhubUpdateAll: (agent: string) => invoke<void>("clawhub_update_all", { agent }),

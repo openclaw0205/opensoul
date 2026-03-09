@@ -122,13 +122,6 @@ pub struct ClawHubSkillInfo {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ClawHubSkillDetail {
-    pub meta: ClawHubSkillInfo,
-    pub content: String,
-    pub truncated: bool,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
 pub struct MemoryEntry {
     pub filename: String,
     pub date: String,
@@ -1074,41 +1067,6 @@ fn clawhub_search(query: String) -> Result<Vec<ClawHubSkillInfo>, String> {
 }
 
 #[command]
-fn clawhub_inspect(skill_id: String) -> Result<ClawHubSkillDetail, String> {
-    validate_id(&skill_id)?;
-    let output = run_clawhub(&["inspect", &skill_id, "--file", "SKILL.md", "--json", "--no-input"], None)?;
-    let v: serde_json::Value = serde_json::from_str(&output).map_err(|e| e.to_string())?;
-    let tags = v["skill"]["tags"]
-        .as_object()
-        .map(|m| m.keys().cloned().collect())
-        .unwrap_or_else(Vec::new);
-    let raw_content = v["file"]["content"].as_str().unwrap_or("").to_string();
-    let max_preview_chars = 60_000usize;
-    let truncated = raw_content.chars().count() > max_preview_chars;
-    let content = if truncated {
-        let prefix: String = raw_content.chars().take(max_preview_chars).collect();
-        format!(
-            "{}\n\n---\n[Preview truncated by OpenSoul to keep the app responsive. Use ClawHub / local files for the full SKILL.md.]",
-            prefix
-        )
-    } else {
-        raw_content
-    };
-    Ok(ClawHubSkillDetail {
-        meta: ClawHubSkillInfo {
-            id: v["skill"]["slug"].as_str().unwrap_or("").to_string(),
-            name: v["skill"]["displayName"].as_str().unwrap_or("").to_string(),
-            description: v["skill"]["summary"].as_str().unwrap_or("").to_string(),
-            tags,
-            version: v["version"]["version"].as_str().unwrap_or("").to_string(),
-            source: "clawhub".to_string(),
-        },
-        content,
-        truncated,
-    })
-}
-
-#[command]
 fn clawhub_install(agent: String, skill_id: String) -> Result<(), String> {
     validate_id(&skill_id)?;
     let workdir = workspace_dir(&agent);
@@ -1267,7 +1225,6 @@ pub fn run() {
             clawhub_status,
             clawhub_explore,
             clawhub_search,
-            clawhub_inspect,
             clawhub_install,
             clawhub_update_all,
             delete_skill,
