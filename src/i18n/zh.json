@@ -147,6 +147,10 @@
     "refreshCloud": "刷新云端列表",
     "cloudStatusOk": "已连接云端 registry，共 {{count}} 个 skills",
     "cloudStatusError": "云端 registry 连接失败",
+    "preview": "预览详情",
+    "previewTitle": "技能预览",
+    "closePreview": "关闭",
+    "loadingPreview": "加载预览中...",
     "versionLabel": "版本",
     "source": {
       "hub": "本地 Hub",

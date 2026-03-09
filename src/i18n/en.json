@@ -147,6 +147,10 @@
     "refreshCloud": "Refresh Cloud List",
     "cloudStatusOk": "Connected to cloud registry · {{count}} skill(s)",
     "cloudStatusError": "Failed to connect to cloud registry",
+    "preview": "Preview",
+    "previewTitle": "Skill Preview",
+    "closePreview": "Close",
+    "loadingPreview": "Loading preview...",
     "versionLabel": "Version",
     "source": {
       "hub": "Local Hub",

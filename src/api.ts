@@ -29,6 +29,11 @@ export interface CloudSkillInfo {
   download_url?: string;
 }
 
+export interface CloudSkillDetail {
+  meta: CloudSkillInfo;
+  content: string;
+}
+
 export interface MemoryEntry {
   filename: string;
   date: string;
@@ -99,6 +104,8 @@ export const api = {
   listSkills: (agent: string) => invoke<SkillInfo[]>("list_skills", { agent }),
   listHubSkills: () => invoke<SkillInfo[]>("list_hub_skills"),
   fetchCloudSkills: () => invoke<CloudSkillInfo[]>("fetch_cloud_skills"),
+  fetchCloudSkillDetail: (skillId: string) =>
+    invoke<CloudSkillDetail>("fetch_cloud_skill_detail", { skillId }),
   downloadCloudSkillToHub: (skillId: string) =>
     invoke<string>("download_cloud_skill_to_hub", { skillId }),
   downloadCloudSkillToPersona: (agent: string, skillId: string) =>

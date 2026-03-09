@@ -131,6 +131,12 @@ pub struct CloudSkillInfo {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct CloudSkillDetail {
+    pub meta: CloudSkillInfo,
+    pub content: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct MemoryEntry {
     pub filename: String,
     pub date: String,
@@ -1071,6 +1077,27 @@ async fn fetch_cloud_skills() -> Result<Vec<CloudSkillInfo>, String> {
 }
 
 #[command]
+async fn fetch_cloud_skill_detail(skill_id: String) -> Result<CloudSkillDetail, String> {
+    validate_id(&skill_id)?;
+    let skills = fetch_cloud_skills_index().await?;
+    let skill = skills
+        .into_iter()
+        .find(|item| item.id == skill_id)
+        .ok_or_else(|| format!("Cloud skill '{}' not found", skill_id))?;
+    let download_url = resolve_cloud_skill_download_url(&skill);
+    let resp = reqwest::Client::new()
+        .get(&download_url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("Failed to fetch skill detail '{}': {}", skill.id, resp.status()));
+    }
+    let content = resp.text().await.map_err(|e| e.to_string())?;
+    Ok(CloudSkillDetail { meta: skill, content })
+}
+
+#[command]
 async fn download_cloud_skill_to_hub(skill_id: String) -> Result<String, String> {
     download_cloud_skill_impl(&skill_id).await
 }
@@ -1256,6 +1283,7 @@ pub fn run() {
             save_persona_file,
             list_skills,
             fetch_cloud_skills,
+            fetch_cloud_skill_detail,
             download_cloud_skill_to_hub,
             download_cloud_skill_to_persona,
             list_hub_skills,
