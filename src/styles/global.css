@@ -452,11 +452,20 @@ body {
   color: var(--warning);
 }
 
+.badge-muted {
+  background: rgba(136, 136, 168, 0.12);
+  color: var(--text-secondary);
+}
+
 /* Persona grid */
 .persona-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
+}
+
+.persona-grid-wide {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 }
 
 .persona-card {
@@ -543,6 +552,54 @@ body {
   gap: 8px;
   align-items: center;
   margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.persona-section-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.persona-skill-pack,
+.persona-skill-pack-editor {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.persona-pack-summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.persona-skill-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.persona-skill-row:last-child {
+  margin-bottom: 0;
+}
+
+.persona-skill-label {
+  min-width: 72px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-top: 4px;
+}
+
+.persona-tag-empty {
+  color: var(--text-muted);
 }
 
 /* Create form */

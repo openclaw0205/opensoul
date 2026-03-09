@@ -111,6 +111,13 @@ pub struct AgentInfo {
     pub has_workspace: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct PersonaSkillPack {
+    pub required: Vec<String>,
+    pub recommended: Vec<String>,
+    pub optional: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PersonaMeta {
     pub id: String,
@@ -128,6 +135,9 @@ pub struct PersonaMeta {
     pub base_version: String,
     pub current_version: String,
     pub last_switched_at: String,
+    pub tags: Vec<String>,
+    pub skill_pack: PersonaSkillPack,
+    pub declared_skill_count: usize,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -161,6 +171,18 @@ fn persona_base_dir(id: &str) -> PathBuf {
 }
 fn persona_snapshots_dir(id: &str) -> PathBuf {
     personas_dir().join(id).join("snapshots")
+}
+
+fn normalize_string_list(value: Option<&serde_json::Value>) -> Vec<String> {
+    value
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.trim().to_string()))
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn read_persona_meta_json(id: &str) -> serde_json::Value {
@@ -400,6 +422,13 @@ fn list_personas(agent: &str) -> Result<Vec<PersonaMeta>, String> {
         } else {
             0
         };
+        let tags = normalize_string_list(meta.get("tags"));
+        let required = normalize_string_list(meta.get("skills").and_then(|v| v.get("required")));
+        let recommended =
+            normalize_string_list(meta.get("skills").and_then(|v| v.get("recommended")));
+        let optional = normalize_string_list(meta.get("skills").and_then(|v| v.get("optional")));
+        let declared_skill_count = required.len() + recommended.len() + optional.len();
+
         personas.push(PersonaMeta {
             is_active: id == active_id,
             id: id.clone(),
@@ -419,6 +448,13 @@ fn list_personas(agent: &str) -> Result<Vec<PersonaMeta>, String> {
             skill_count,
             memory_count,
             snapshot_count,
+            tags,
+            skill_pack: PersonaSkillPack {
+                required,
+                recommended,
+                optional,
+            },
+            declared_skill_count,
         });
     }
     personas.sort_by(|a, b| b.is_active.cmp(&a.is_active).then(a.name.cmp(&b.name)));
@@ -434,6 +470,8 @@ fn create_persona(
     soul_content: String,
     identity_content: String,
     agents_content: String,
+    tags: Vec<String>,
+    skill_pack: PersonaSkillPack,
 ) -> Result<(), String> {
     validate_id(&id)?;
     if personas_dir().join(&id).exists() {
@@ -446,7 +484,25 @@ fn create_persona(
     fs::create_dir_all(persona_snapshots_dir(&id)).map_err(|e| e.to_string())?;
     write_persona_meta_json(
         &id,
-        &serde_json::json!({"name": name, "description": description, "emoji": emoji, "author": "local", "source": "local", "base_version": "", "current_version": 1, "snapshot_count": 0, "created_at": timestamp_human(), "last_switched_at": "", "last_backup_at": ""}),
+        &serde_json::json!({
+            "name": name,
+            "description": description,
+            "emoji": emoji,
+            "author": "local",
+            "source": "local",
+            "base_version": "",
+            "current_version": 1,
+            "snapshot_count": 0,
+            "created_at": timestamp_human(),
+            "last_switched_at": "",
+            "last_backup_at": "",
+            "tags": tags,
+            "skills": {
+                "required": skill_pack.required,
+                "recommended": skill_pack.recommended,
+                "optional": skill_pack.optional
+            }
+        }),
     )?;
     if !soul_content.is_empty() {
         fs::write(current.join("SOUL.md"), &soul_content).map_err(|e| e.to_string())?;
@@ -515,6 +571,8 @@ fn save_current_as_persona(
     name: String,
     description: String,
     emoji: String,
+    tags: Vec<String>,
+    skill_pack: PersonaSkillPack,
 ) -> Result<(), String> {
     validate_id(&persona_id)?;
     let ws = workspace_dir(&agent);
@@ -533,12 +591,36 @@ fn save_current_as_persona(
         m["name"] = serde_json::json!(name);
         m["description"] = serde_json::json!(description);
         m["emoji"] = serde_json::json!(emoji);
+        m["tags"] = serde_json::json!(tags);
+        m["skills"] = serde_json::json!({
+            "required": skill_pack.required,
+            "recommended": skill_pack.recommended,
+            "optional": skill_pack.optional
+        });
         m["last_switched_at"] = serde_json::json!(timestamp_human());
         write_persona_meta_json(&persona_id, &m)?;
     } else {
         write_persona_meta_json(
             &persona_id,
-            &serde_json::json!({"name": name, "description": description, "emoji": emoji, "author": "local", "source": "local", "base_version": "", "current_version": 1, "snapshot_count": 0, "created_at": timestamp_human(), "last_switched_at": timestamp_human(), "last_backup_at": ""}),
+            &serde_json::json!({
+                "name": name,
+                "description": description,
+                "emoji": emoji,
+                "author": "local",
+                "source": "local",
+                "base_version": "",
+                "current_version": 1,
+                "snapshot_count": 0,
+                "created_at": timestamp_human(),
+                "last_switched_at": timestamp_human(),
+                "last_backup_at": "",
+                "tags": tags,
+                "skills": {
+                    "required": skill_pack.required,
+                    "recommended": skill_pack.recommended,
+                    "optional": skill_pack.optional
+                }
+            }),
         )?;
     }
     fs::write(ws.join(".active-persona"), &persona_id).map_err(|e| e.to_string())?;

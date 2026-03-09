@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { api, PersonaMeta, CommunityPersona, SnapshotInfo } from "../api";
+import { api, PersonaMeta, CommunityPersona, SnapshotInfo, PersonaSkillPack } from "../api";
 
 interface Props {
   agent: string;
 }
 
 type Tab = "my" | "community" | "create";
+type SkillPackKey = keyof PersonaSkillPack;
+
+const EMPTY_SKILL_PACK: PersonaSkillPack = {
+  required: [],
+  recommended: [],
+  optional: [],
+};
 
 export default function PersonaPage({ agent }: Props) {
   const { t } = useTranslation();
@@ -40,9 +47,6 @@ export default function PersonaPage({ agent }: Props) {
   );
 }
 
-// ============================================================
-// Toast helper
-// ============================================================
 function useToast() {
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const show = (msg: string, type: "success" | "error" = "success") => {
@@ -53,9 +57,17 @@ function useToast() {
   return { show, el };
 }
 
-// ============================================================
-// My Personas
-// ============================================================
+function parseCommaList(input: string) {
+  return input
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatSkillPackCount(skillPack: PersonaSkillPack) {
+  return skillPack.required.length + skillPack.recommended.length + skillPack.optional.length;
+}
+
 function MyPersonas({ agent }: { agent: string }) {
   const { t } = useTranslation();
   const [personas, setPersonas] = useState<PersonaMeta[]>([]);
@@ -74,7 +86,9 @@ function MyPersonas({ agent }: { agent: string }) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [agent]);
+  useEffect(() => {
+    load();
+  }, [agent]);
 
   const handleSwitch = async (id: string) => {
     if (switching) return;
@@ -105,8 +119,17 @@ function MyPersonas({ agent }: { agent: string }) {
     const id = prompt(t("persona.saveCurrentPrompt"));
     if (!id) return;
     const name = prompt(t("persona.namePrompt"), id) || id;
+    const description = prompt(t("persona.descPrompt"), "") || "";
+    const tags = parseCommaList(prompt(t("persona.tagsPrompt"), "") || "");
+    const required = parseCommaList(prompt(t("persona.requiredPrompt"), "") || "");
+    const recommended = parseCommaList(prompt(t("persona.recommendedPrompt"), "") || "");
+    const optional = parseCommaList(prompt(t("persona.optionalPrompt"), "") || "");
     try {
-      await api.saveCurrentAsPersona(agent, id, name, "", "🤖");
+      await api.saveCurrentAsPersona(agent, id, name, description, "🤖", tags, {
+        required,
+        recommended,
+        optional,
+      });
       toast.show(t("persona.savedCurrent", { name }));
       await load();
     } catch (e: any) {
@@ -116,7 +139,6 @@ function MyPersonas({ agent }: { agent: string }) {
 
   if (loading) return <div>{t("common.loading")}</div>;
 
-  // Show snapshots panel if a persona is selected
   if (selectedForSnapshots) {
     return (
       <div>
@@ -143,80 +165,85 @@ function MyPersonas({ agent }: { agent: string }) {
 
       {personas.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 40 }}>
-          <p style={{ color: "var(--text-secondary)", marginBottom: 12 }}>
-            {t("persona.empty")}
-          </p>
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-            {t("persona.emptyHint")}
-          </p>
+          <p style={{ color: "var(--text-secondary)", marginBottom: 12 }}>{t("persona.empty")}</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{t("persona.emptyHint")}</p>
         </div>
       ) : (
-        <div className="persona-grid">
-          {personas.map((p) => (
-            <div
-              key={p.id}
-              className={`persona-card ${p.is_active ? "persona-card-active" : ""}`}
-            >
-              <div className="persona-card-header">
-                <span className="persona-emoji">{p.emoji}</span>
-                <div className="persona-card-info">
-                  <h4>
-                    {p.name}
-                    {p.current_version && (
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>
-                        {p.current_version}
-                      </span>
-                    )}
-                  </h4>
-                  {p.description && <p className="persona-card-desc">{p.description}</p>}
+        <div className="persona-grid persona-grid-wide">
+          {personas.map((p) => {
+            const declaredCount = formatSkillPackCount(p.skill_pack);
+            return (
+              <div key={p.id} className={`persona-card ${p.is_active ? "persona-card-active" : ""}`}>
+                <div className="persona-card-header">
+                  <span className="persona-emoji">{p.emoji}</span>
+                  <div className="persona-card-info">
+                    <h4>
+                      {p.name}
+                      {p.current_version && (
+                        <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>
+                          {p.current_version}
+                        </span>
+                      )}
+                    </h4>
+                    {p.description && <p className="persona-card-desc">{p.description}</p>}
+                  </div>
+                  {p.is_active && <span className="badge badge-success">{t("persona.active")}</span>}
                 </div>
-                {p.is_active && (
-                  <span className="badge badge-success">{t("persona.active")}</span>
-                )}
-              </div>
 
-              <div className="persona-card-stats">
-                {p.source === "community" && (
-                  <span className="persona-stat">🌐 {t("persona.communitySource")}</span>
-                )}
-                {p.has_memory && (
-                  <span className="persona-stat">📚 {p.memory_count} {t("persona.memories")}</span>
-                )}
-                {p.has_skills && (
-                  <span className="persona-stat">⚡ {p.skill_count} {t("persona.skillsLabel")}</span>
-                )}
-                {p.snapshot_count > 0 && (
-                  <span className="persona-stat">📸 {p.snapshot_count} {t("persona.snapshots")}</span>
-                )}
-              </div>
+                <div className="persona-card-stats">
+                  <span className="persona-stat">🆔 {p.id}</span>
+                  {p.source === "community" && <span className="persona-stat">🌐 {t("persona.communitySource")}</span>}
+                  {p.has_memory && <span className="persona-stat">📚 {p.memory_count} {t("persona.memories")}</span>}
+                  {p.has_skills && <span className="persona-stat">⚡ {p.skill_count} {t("persona.skillsLabel")}</span>}
+                  {p.snapshot_count > 0 && <span className="persona-stat">📸 {p.snapshot_count} {t("persona.snapshots")}</span>}
+                </div>
 
-              <div className="persona-card-actions">
-                {!p.is_active && (
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleSwitch(p.id)}
-                    disabled={switching !== null}
-                  >
-                    {switching === p.id ? t("persona.switching") : t("persona.switch")}
-                  </button>
+                {p.tags.length > 0 && (
+                  <div className="persona-tags">
+                    {p.tags.map((tag) => (
+                      <span key={tag} className="persona-tag">#{tag}</span>
+                    ))}
+                  </div>
                 )}
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setSelectedForSnapshots(p.id)}
-                >
-                  📸 {t("persona.viewSnapshots")}
-                </button>
-                {!p.is_active && (
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(p.id)}
-                  >
-                    {t("persona.delete")}
+
+                <div className="persona-skill-pack">
+                  <div className="persona-section-title">{t("persona.skillPackTitle")}</div>
+                  <div className="persona-pack-summary">
+                    <span className="persona-stat">{t("persona.requiredCount", { count: p.skill_pack.required.length })}</span>
+                    <span className="persona-stat">{t("persona.recommendedCount", { count: p.skill_pack.recommended.length })}</span>
+                    <span className="persona-stat">{t("persona.optionalCount", { count: p.skill_pack.optional.length })}</span>
+                    <span className={`badge ${declaredCount > 0 ? "badge-warning" : "badge-muted"}`}>
+                      {declaredCount > 0
+                        ? t("persona.declaredSkills", { count: declaredCount })
+                        : t("persona.noDeclaredSkills")}
+                    </span>
+                  </div>
+                  <SkillPackChips label={t("persona.required")}
+                    items={p.skill_pack.required} />
+                  <SkillPackChips label={t("persona.recommended")}
+                    items={p.skill_pack.recommended} />
+                  <SkillPackChips label={t("persona.optional")}
+                    items={p.skill_pack.optional} />
+                </div>
+
+                <div className="persona-card-actions">
+                  {!p.is_active && (
+                    <button className="btn btn-primary btn-sm" onClick={() => handleSwitch(p.id)} disabled={switching !== null}>
+                      {switching === p.id ? t("persona.switching") : t("persona.switch")}
+                    </button>
+                  )}
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSelectedForSnapshots(p.id)}>
+                    📸 {t("persona.viewSnapshots")}
                   </button>
-                )}
+                  {!p.is_active && (
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>
+                      {t("persona.delete")}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {toast.el}
@@ -224,9 +251,25 @@ function MyPersonas({ agent }: { agent: string }) {
   );
 }
 
-// ============================================================
-// Snapshots Panel
-// ============================================================
+function SkillPackChips({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="persona-skill-row">
+      <span className="persona-skill-label">{label}</span>
+      <div className="persona-tags">
+        {items.length === 0 ? (
+          <span className="persona-tag persona-tag-empty">—</span>
+        ) : (
+          items.map((item) => (
+            <span key={`${label}-${item}`} className="persona-tag">
+              {item}
+            </span>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SnapshotsPanel({ agent, personaId }: { agent: string; personaId: string }) {
   const { t } = useTranslation();
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([]);
@@ -243,7 +286,9 @@ function SnapshotsPanel({ agent, personaId }: { agent: string; personaId: string
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [personaId]);
+  useEffect(() => {
+    load();
+  }, [personaId]);
 
   const handleCreateSnapshot = async () => {
     try {
@@ -294,19 +339,14 @@ function SnapshotsPanel({ agent, personaId }: { agent: string; personaId: string
             <div key={s.id} className="memory-item">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <div className="date">
-                    {REASON_LABELS[s.reason] || "📸"} {s.created_at}
-                  </div>
+                  <div className="date">{REASON_LABELS[s.reason] || "📸"} {s.created_at}</div>
                   <div className="preview">
                     {t(`persona.reason.${s.reason}`, { defaultValue: s.reason })}
                     {s.has_memory && " · 📚"}
                     {s.has_skills && " · ⚡"}
                   </div>
                 </div>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => handleRestore(s.id)}
-                >
+                <button className="btn btn-secondary btn-sm" onClick={() => handleRestore(s.id)}>
                   ↩️ {t("persona.restore")}
                 </button>
               </div>
@@ -319,9 +359,6 @@ function SnapshotsPanel({ agent, personaId }: { agent: string; personaId: string
   );
 }
 
-// ============================================================
-// Community Personas
-// ============================================================
 function CommunityPersonas({ agent }: { agent: string }) {
   const { t } = useTranslation();
   const [personas, setPersonas] = useState<CommunityPersona[]>([]);
@@ -351,7 +388,6 @@ function CommunityPersonas({ agent }: { agent: string }) {
   const handleDownload = async (id: string) => {
     setDownloading(id);
     try {
-      // Check if exists locally
       const exists = await api.checkPersonaExists(id);
       let force = false;
       if (exists) {
@@ -362,30 +398,14 @@ function CommunityPersonas({ agent }: { agent: string }) {
         force = true;
       }
       const result = await api.downloadCommunityPersona(agent, id, force);
-      if (result.startsWith("backed_up:")) {
-        toast.show(t("persona.downloadedWithBackup", { name: id }));
-      } else {
-        toast.show(t("persona.downloaded", { name: id }));
-      }
+      toast.show(
+        result.startsWith("backed_up:")
+          ? t("persona.downloadedWithBackup", { name: id })
+          : t("persona.downloaded", { name: id })
+      );
       setLocalIds((prev) => new Set([...prev, id]));
     } catch (e: any) {
-      if (e?.toString().includes("EXISTS_LOCALLY")) {
-        // Shouldn't reach here since we check first, but handle gracefully
-        if (confirm(t("persona.overwriteConfirm", { name: id }))) {
-          try {
-            const result = await api.downloadCommunityPersona(agent, id, true);
-            toast.show(
-              result.startsWith("backed_up:")
-                ? t("persona.downloadedWithBackup", { name: id })
-                : t("persona.downloaded", { name: id })
-            );
-          } catch (e2: any) {
-            toast.show(e2?.toString() || "Error", "error");
-          }
-        }
-      } else {
-        toast.show(e?.toString() || "Error", "error");
-      }
+      toast.show(e?.toString() || "Error", "error");
     }
     setDownloading(null);
   };
@@ -432,20 +452,10 @@ function CommunityPersonas({ agent }: { agent: string }) {
                 )}
               </div>
               <div className="persona-card-actions">
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => handleDownload(p.id)}
-                  disabled={downloading !== null}
-                >
-                  {downloading === p.id
-                    ? t("persona.downloading")
-                    : installed
-                      ? t("persona.redownload")
-                      : t("persona.download")}
+                <button className="btn btn-primary btn-sm" onClick={() => handleDownload(p.id)} disabled={downloading !== null}>
+                  {downloading === p.id ? t("persona.downloading") : installed ? t("persona.redownload") : t("persona.download")}
                 </button>
-                {installed && (
-                  <span className="badge badge-success">{t("persona.installed")}</span>
-                )}
+                {installed && <span className="badge badge-success">{t("persona.installed")}</span>}
               </div>
             </div>
           );
@@ -456,20 +466,26 @@ function CommunityPersonas({ agent }: { agent: string }) {
   );
 }
 
-// ============================================================
-// Create Persona
-// ============================================================
 function CreatePersona({ onCreated }: { onCreated: () => void }) {
   const { t } = useTranslation();
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [emoji, setEmoji] = useState("🤖");
+  const [tagsInput, setTagsInput] = useState("");
+  const [skillPack, setSkillPack] = useState<PersonaSkillPack>(EMPTY_SKILL_PACK);
   const [soulContent, setSoulContent] = useState("");
   const [identityContent, setIdentityContent] = useState("");
   const [agentsContent, setAgentsContent] = useState("");
   const [creating, setCreating] = useState(false);
   const toast = useToast();
+
+  const updateSkillPack = (key: SkillPackKey, value: string) => {
+    setSkillPack((prev) => ({
+      ...prev,
+      [key]: parseCommaList(value),
+    }));
+  };
 
   const handleCreate = async () => {
     if (!id.trim() || !name.trim()) {
@@ -483,8 +499,15 @@ function CreatePersona({ onCreated }: { onCreated: () => void }) {
     setCreating(true);
     try {
       await api.createPersona({
-        id, name, description, emoji,
-        soulContent, identityContent, agentsContent,
+        id,
+        name,
+        description,
+        emoji,
+        soulContent,
+        identityContent,
+        agentsContent,
+        tags: parseCommaList(tagsInput),
+        skillPack,
       });
       toast.show(t("persona.created", { name }));
       onCreated();
@@ -504,77 +527,53 @@ function CreatePersona({ onCreated }: { onCreated: () => void }) {
           <div className="form-row">
             <div className="form-group" style={{ flex: "0 0 80px" }}>
               <label>{t("persona.emojiLabel")}</label>
-              <input
-                className="form-input form-input-emoji"
-                value={emoji}
-                onChange={(e) => setEmoji(e.target.value)}
-                maxLength={4}
-              />
+              <input className="form-input form-input-emoji" value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label>{t("persona.idLabel")}</label>
-              <input
-                className="form-input"
-                placeholder="my-persona"
-                value={id}
-                onChange={(e) => setId(e.target.value)}
-              />
+              <input className="form-input" placeholder="my-persona" value={id} onChange={(e) => setId(e.target.value)} />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label>{t("persona.nameLabel")}</label>
-              <input
-                className="form-input"
-                placeholder={t("persona.namePlaceholder")}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <input className="form-input" placeholder={t("persona.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
             </div>
           </div>
           <div className="form-group">
             <label>{t("persona.descLabel")}</label>
-            <input
-              className="form-input"
-              placeholder={t("persona.descPlaceholder")}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <input className="form-input" placeholder={t("persona.descPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>{t("persona.tagsLabel")}</label>
+            <input className="form-input" placeholder={t("persona.tagsPlaceholder")} value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} />
+          </div>
+          <div className="persona-skill-pack-editor">
+            <div className="persona-section-title">{t("persona.skillPackTitle")}</div>
+            <div className="form-group">
+              <label>{t("persona.required")}</label>
+              <input className="form-input" placeholder={t("persona.skillsPlaceholder")} onChange={(e) => updateSkillPack("required", e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>{t("persona.recommended")}</label>
+              <input className="form-input" placeholder={t("persona.skillsPlaceholder")} onChange={(e) => updateSkillPack("recommended", e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>{t("persona.optional")}</label>
+              <input className="form-input" placeholder={t("persona.skillsPlaceholder")} onChange={(e) => updateSkillPack("optional", e.target.value)} />
+            </div>
           </div>
           <div className="form-group">
             <label>SOUL.md</label>
-            <textarea
-              className="editor-textarea"
-              style={{ minHeight: 120 }}
-              placeholder={t("persona.soulPlaceholder")}
-              value={soulContent}
-              onChange={(e) => setSoulContent(e.target.value)}
-            />
+            <textarea className="editor-textarea" style={{ minHeight: 120 }} placeholder={t("persona.soulPlaceholder")} value={soulContent} onChange={(e) => setSoulContent(e.target.value)} />
           </div>
           <div className="form-group">
             <label>IDENTITY.md</label>
-            <textarea
-              className="editor-textarea"
-              style={{ minHeight: 100 }}
-              placeholder={t("persona.identityPlaceholder")}
-              value={identityContent}
-              onChange={(e) => setIdentityContent(e.target.value)}
-            />
+            <textarea className="editor-textarea" style={{ minHeight: 100 }} placeholder={t("persona.identityPlaceholder")} value={identityContent} onChange={(e) => setIdentityContent(e.target.value)} />
           </div>
           <div className="form-group">
             <label>AGENTS.md</label>
-            <textarea
-              className="editor-textarea"
-              style={{ minHeight: 100 }}
-              placeholder={t("persona.agentsPlaceholder")}
-              value={agentsContent}
-              onChange={(e) => setAgentsContent(e.target.value)}
-            />
+            <textarea className="editor-textarea" style={{ minHeight: 100 }} placeholder={t("persona.agentsPlaceholder")} value={agentsContent} onChange={(e) => setAgentsContent(e.target.value)} />
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleCreate}
-            disabled={creating}
-            style={{ marginTop: 8 }}
-          >
+          <button className="btn btn-primary" onClick={handleCreate} disabled={creating} style={{ marginTop: 8 }}>
             {creating ? t("persona.creating") : t("persona.createBtn")}
           </button>
         </div>

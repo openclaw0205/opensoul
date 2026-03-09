@@ -28,6 +28,12 @@ export interface AgentInfo {
   has_workspace: boolean;
 }
 
+export interface PersonaSkillPack {
+  required: string[];
+  recommended: string[];
+  optional: string[];
+}
+
 export interface PersonaMeta {
   id: string;
   name: string;
@@ -44,6 +50,9 @@ export interface PersonaMeta {
   base_version: string;
   current_version: string;
   last_switched_at: string;
+  tags: string[];
+  skill_pack: PersonaSkillPack;
+  declared_skill_count: number;
 }
 
 export interface CommunityPersona {
@@ -103,6 +112,8 @@ export const api = {
     soulContent: string;
     identityContent: string;
     agentsContent: string;
+    tags: string[];
+    skillPack: PersonaSkillPack;
   }) => invoke<void>("create_persona", params),
   switchPersona: (agent: string, personaId: string) =>
     invoke<void>("switch_persona", { agent, personaId }),
@@ -113,8 +124,18 @@ export const api = {
     personaId: string,
     name: string,
     description: string,
-    emoji: string
-  ) => invoke<void>("save_current_as_persona", { agent, personaId, name, description, emoji }),
+    emoji: string,
+    tags: string[] = [],
+    skillPack: PersonaSkillPack = { required: [], recommended: [], optional: [] }
+  ) => invoke<void>("save_current_as_persona", {
+    agent,
+    personaId,
+    name,
+    description,
+    emoji,
+    tags,
+    skillPack,
+  }),
   fetchCommunityPersonas: () => invoke<CommunityPersona[]>("fetch_community_personas"),
   downloadCommunityPersona: (agent: string, personaId: string, force: boolean = false) =>
     invoke<string>("download_community_persona", { agent, personaId, force }),
