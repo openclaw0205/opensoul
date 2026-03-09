@@ -1,95 +1,119 @@
 # OpenSoul
 
-OpenSoul is a desktop persona manager for OpenClaw.
+OpenSoul is a local-first desktop app for managing AI persona assets.
 
-It gives you a GUI for the parts of OpenClaw that usually live in `~/.openclaw`: personas, skills, memory, backups, multi-agent workspaces, and `openclaw.json`.
+It helps you own, organize, switch, and protect the parts that make an AI feel continuous:
 
-## What It Does
+- persona
+- skills
+- memory
+- backups
 
-- Manage local personas for each agent
-- Switch personas while automatically saving the current one first
-- Download community personas and overwrite local ones with a backup snapshot
-- Browse persona snapshots and restore older states
-- View installed skills and uninstall them
-- Read daily memory files and long-term memory
-- Back up and restore the current workspace
-- Edit `openclaw.json` from a structured settings screen
-- Switch between `main` and other OpenClaw agents
+Instead of treating AI as a temporary chat window, OpenSoul treats it as a system you can operate locally.
 
-## Product Model
+## One-line Definition
 
-OpenSoul is an open-source desktop app for local-first persona management.
+**OpenSoul helps you manage AI persona assets locally — who the AI is, what it can do, what it remembers, and how to restore it safely.**
 
-- Data is stored locally on the user's machine
-- The app must remain compatible with existing OpenClaw data in `~/.openclaw`
-- `~/.openclaw` is treated as a compatibility source, not the only valid future storage model
+## Who It Is For
 
-OpenSoul treats a persona as an evolving workspace, not a static template.
+OpenSoul is built for people who use OpenClaw seriously and want more than raw file editing:
 
-- Switching from persona `A` to persona `B` saves `A` before loading `B`
-- Downloading a community persona over an existing local persona creates a backup snapshot first
-- Restoring a snapshot updates the persona state and, if that persona is currently active, also updates the live workspace
+- people running multiple personas
+- people treating AI as a long-term companion or working partner
+- developers experimenting with persona + skills + memory workflows
+- OpenClaw users who want a safer, more visual local control panel
 
-This is the core behavior behind the app.
+## What Problem It Solves
 
-## Data Layout
+OpenClaw is powerful, but once you start using multiple personas, skills, memories, and backups, the file-based workflow becomes hard to manage.
 
-OpenSoul reads and writes directly to your local OpenClaw files.
+The real problem is not "how to chat with AI".
+The real problem is:
+
+- how to manage who the AI is
+- how to manage what skills are attached to it
+- how to keep memory continuous
+- how to switch or recover safely without breaking things
+
+OpenSoul exists to reduce that operational complexity.
+
+## Core Product Idea
+
+OpenSoul is not just a GUI for markdown files.
+
+It is an **AI identity and continuity manager**.
+
+That means it focuses on four core layers:
+
+1. **Persona** — who the AI is
+2. **Skills** — what the AI can do
+3. **Memory** — what the AI remembers
+4. **Backup** — how the AI can be protected and restored
+
+## Product Principles
+
+- **Local-first** — user data lives on the local machine
+- **Open-source** — the project must stay transparent and usable
+- **OpenClaw-compatible** — it can read and manage existing `.openclaw` data
+- **Cross-platform** — designed for desktop, with macOS now and Windows support in scope
+
+OpenSoul currently works directly with local OpenClaw data, while also moving toward a cleaner local storage model for the future.
+
+## What It Does Today
+
+### Persona
+- manage local personas
+- switch personas safely
+- save the current state as a persona
+- download community personas
+- browse and restore persona snapshots
+
+### Skills
+- inspect installed skills
+- connect to official ClawHub
+- search and install skills
+- update installed skills
+
+### Memory
+- browse daily memory files
+- read long-term memory
+
+### Backup
+- manage snapshot backups across all personas
+- restore a selected backup
+- export and import archive backups
+
+### Config
+- edit `openclaw.json` from a structured UI
+
+## Current Data Model
+
+Today, OpenSoul remains compatible with OpenClaw's local structure:
 
 ```text
 ~/.openclaw/
 ├── workspace/
-│   ├── SOUL.md
-│   ├── IDENTITY.md
-│   ├── USER.md
-│   ├── AGENTS.md
-│   ├── MEMORY.md
-│   ├── memory/
-│   ├── skills/
-│   └── .active-persona
 ├── agents/
-│   └── <agent>/workspace/
 ├── personas/
-│   └── <persona-id>/
-│       ├── current/
-│       ├── base/
-│       ├── snapshots/
-│       └── meta.json
 └── openclaw.json
 ```
 
-## Screens
+But the product direction is broader than that:
 
-### Persona
+- OpenSoul data should remain local
+- `.openclaw` is an important compatibility source
+- local storage should not be mentally limited to a single hidden directory forever
 
-- List local personas
-- Create a new persona
-- Save the current workspace as a persona
-- Switch personas
-- Delete inactive personas
-- Browse and restore snapshots
-- Download community personas
+## Why This Project Matters
 
-### Skills
+Most AI products treat identity as temporary.
 
-- List installed skills from the current agent workspace
-- Uninstall a skill directory
+OpenSoul takes the opposite approach:
 
-### Memory
+> your AI should be something you can configure, switch, preserve, and recover — not just a disposable session.
 
-- Browse daily memory files
-- Read `MEMORY.md`
-
-### Backup
-
-- Create a compressed backup of the current workspace
-- Restore a workspace backup archive
-
-### Config
-
-- Read `openclaw.json`
-- Edit supported sections in a structured form
-- Save validated JSON back to disk
+That is the real value of the project.
 
 ## Tech Stack
 
@@ -97,13 +121,6 @@ OpenSoul reads and writes directly to your local OpenClaw files.
 - Desktop shell: Tauri 2
 - Backend: Rust
 - i18n: i18next
-
-## Prerequisites
-
-- Node.js 18+
-- Rust toolchain
-- OpenClaw installed locally
-- A valid `~/.openclaw` directory
 
 ## Development
 
@@ -153,12 +170,6 @@ cargo test
 ```
 
 Run Rust commands inside `src-tauri/`.
-
-## Current Limits
-
-- There are still no automated behavior tests for persona switching, backup restore, or snapshot flows
-- Config editing is field-based and not a full raw JSON editor
-- The app assumes direct local file access to OpenClaw data and is not designed as a hardened security boundary
 
 ## License
 
