@@ -84,6 +84,12 @@ export interface SnapshotInfo {
   has_skills: boolean;
 }
 
+export interface SnapshotListItem extends SnapshotInfo {
+  persona_name: string;
+  persona_source: string;
+  is_active_persona: boolean;
+}
+
 export const api = {
   listAgents: () => invoke<AgentInfo[]>("list_agents"),
 
@@ -153,6 +159,7 @@ export const api = {
 
   createSnapshot: (agent: string, personaId: string) =>
     invoke<string>("create_snapshot", { agent, personaId }),
+  listAllSnapshots: (agent: string) => invoke<SnapshotListItem[]>("list_all_snapshots", { agent }),
   listSnapshots: (personaId: string) => invoke<SnapshotInfo[]>("list_snapshots", { personaId }),
   restoreSnapshot: (agent: string, personaId: string, snapshotId: string) =>
     invoke<void>("restore_snapshot", { agent, personaId, snapshotId }),

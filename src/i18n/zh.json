@@ -147,8 +147,8 @@
     "noLongterm": "暂无长期记忆"
   },
   "backup": {
-    "title": "备份与恢复",
-    "desc": "备份和恢复你的 AI 人格",
+    "title": "备份管理",
+    "desc": "统一管理全部人格的快照备份，并支持归档导出与导入恢复",
     "backupTitle": "备份",
     "backupDesc": "创建当前人格的快照（SOUL.md、IDENTITY.md、记忆、技能等）",
     "backupNow": "立即备份",
@@ -160,7 +160,36 @@
     "restorePrompt": "输入备份文件路径（如 ~/Desktop/opensoul-backup-main-2026-03-06.tar.gz）",
     "restoreConfirm": "恢复将覆盖当前所有文件，确定继续？",
     "restoring": "恢复中...",
-    "restoreSuccess": "恢复成功！"
+    "restoreSuccess": "恢复成功！",
+    "snapshotActionsTitle": "创建快照",
+    "createSnapshotNow": "为当前人格创建快照",
+    "snapshotActionDesc": "当前会为「{{name}}」创建一个新的备份快照。",
+    "noActivePersona": "当前没有激活人格。",
+    "snapshotCreated": "已为「{{name}}」创建快照：{{id}}",
+    "snapshotListTitle": "备份列表",
+    "noSnapshotsGlobal": "还没有任何人格备份。",
+    "snapshotDetailTitle": "备份详情",
+    "selectSnapshot": "从左侧选择一条备份查看详情。",
+    "restoreSnapshotBtn": "恢复这条备份",
+    "restoringSnapshot": "正在恢复备份...",
+    "snapshotRestored": "已恢复「{{name}}」的备份 {{id}}",
+    "restoreSnapshotConfirm": "确定恢复「{{name}}」的备份 {{id}}？当前状态会先自动备份。",
+    "personaLabel": "人格名称",
+    "personaIdLabel": "人格 ID",
+    "createdAtLabel": "创建时间",
+    "reasonLabel": "备份原因",
+    "sourceLabel": "人格来源",
+    "includesLabel": "包含内容",
+    "includesMemory": "记忆",
+    "includesSkills": "技能",
+    "includesBaseOnly": "仅基础人格文件",
+    "currentPersona": "当前使用中",
+    "archiveTitle": "归档导出 / 导入",
+    "archiveDesc": "如果你要做迁移、保存到本地磁盘，仍然可以使用 tar.gz 归档方式。",
+    "source": {
+      "local": "本地人格",
+      "community": "社区人格"
+    }
   },
   "agent": {
     "label": "代理：{{id}}"

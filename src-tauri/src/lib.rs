@@ -183,6 +183,19 @@ pub struct SnapshotInfo {
     pub has_skills: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SnapshotListItem {
+    pub id: String,
+    pub persona_id: String,
+    pub persona_name: String,
+    pub persona_source: String,
+    pub created_at: String,
+    pub reason: String,
+    pub has_memory: bool,
+    pub has_skills: bool,
+    pub is_active_persona: bool,
+}
+
 // --- Directory helpers ---
 
 fn persona_current_dir(id: &str) -> PathBuf {
@@ -805,6 +818,31 @@ fn create_snapshot(agent: String, persona_id: String) -> Result<String, String> 
 }
 
 #[command]
+fn list_all_snapshots(agent: String) -> Result<Vec<SnapshotListItem>, String> {
+    let active_id = get_active_persona_id(&agent).unwrap_or_default();
+    let personas = list_personas(&agent)?;
+    let mut items = vec![];
+    for persona in personas {
+        let snapshots = list_snapshots(persona.id.clone())?;
+        for snapshot in snapshots {
+            items.push(SnapshotListItem {
+                id: snapshot.id,
+                persona_id: snapshot.persona_id,
+                persona_name: persona.name.clone(),
+                persona_source: persona.source.clone(),
+                created_at: snapshot.created_at,
+                reason: snapshot.reason,
+                has_memory: snapshot.has_memory,
+                has_skills: snapshot.has_skills,
+                is_active_persona: persona.id == active_id,
+            });
+        }
+    }
+    items.sort_by(|a, b| b.id.cmp(&a.id));
+    Ok(items)
+}
+
+#[command]
 fn list_snapshots(persona_id: String) -> Result<Vec<SnapshotInfo>, String> {
     validate_id(&persona_id)?;
     let snap_dir = persona_snapshots_dir(&persona_id);
@@ -1243,6 +1281,7 @@ pub fn run() {
             download_community_persona,
             check_persona_exists,
             create_snapshot,
+            list_all_snapshots,
             list_snapshots,
             restore_snapshot,
         ])

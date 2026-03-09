@@ -147,8 +147,8 @@
     "noLongterm": "No long-term memory found"
   },
   "backup": {
-    "title": "Backup & Restore",
-    "desc": "Backup and restore your AI persona",
+    "title": "Backup Manager",
+    "desc": "Manage snapshot backups for all personas, with archive export and import restore.",
     "backupTitle": "Backup",
     "backupDesc": "Create a snapshot of the current persona (SOUL.md, IDENTITY.md, memory, skills, etc.)",
     "backupNow": "Backup Now",
@@ -160,7 +160,36 @@
     "restorePrompt": "Enter backup file path (e.g. ~/Desktop/opensoul-backup-main-2026-03-06.tar.gz)",
     "restoreConfirm": "This will overwrite all current files. Continue?",
     "restoring": "Restoring...",
-    "restoreSuccess": "Restored successfully!"
+    "restoreSuccess": "Restored successfully!",
+    "snapshotActionsTitle": "Create Snapshot",
+    "createSnapshotNow": "Create Snapshot for Current Persona",
+    "snapshotActionDesc": "This will create a new snapshot for \"{{name}}\".",
+    "noActivePersona": "No active persona right now.",
+    "snapshotCreated": "Created snapshot {{id}} for \"{{name}}\"",
+    "snapshotListTitle": "Backup List",
+    "noSnapshotsGlobal": "No persona backups yet.",
+    "snapshotDetailTitle": "Backup Details",
+    "selectSnapshot": "Select a backup from the left to view details.",
+    "restoreSnapshotBtn": "Restore This Backup",
+    "restoringSnapshot": "Restoring backup...",
+    "snapshotRestored": "Restored backup {{id}} for \"{{name}}\"",
+    "restoreSnapshotConfirm": "Restore backup {{id}} for \"{{name}}\"? Current state will be auto-backed up first.",
+    "personaLabel": "Persona Name",
+    "personaIdLabel": "Persona ID",
+    "createdAtLabel": "Created At",
+    "reasonLabel": "Backup Reason",
+    "sourceLabel": "Persona Source",
+    "includesLabel": "Includes",
+    "includesMemory": "Memory",
+    "includesSkills": "Skills",
+    "includesBaseOnly": "Base persona files only",
+    "currentPersona": "Currently Active",
+    "archiveTitle": "Archive Export / Import",
+    "archiveDesc": "For migration or local disk storage, you can still use tar.gz archive export and import.",
+    "source": {
+      "local": "Local Persona",
+      "community": "Community Persona"
+    }
   },
   "agent": {
     "label": "Agent: {{id}}"

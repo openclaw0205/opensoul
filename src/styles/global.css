@@ -729,6 +729,51 @@ body {
   word-break: break-word;
 }
 
+.backup-list-pane {
+  flex: 0 0 360px;
+}
+
+.backup-item-active {
+  border-color: rgba(255, 79, 77, 0.34);
+  background: var(--accent-dim);
+}
+
+.backup-item-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.backup-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.backup-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.backup-detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.backup-detail-row span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.backup-detail-row strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: right;
+}
 
 /* Create form */
 .create-form {
