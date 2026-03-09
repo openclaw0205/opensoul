@@ -92,7 +92,11 @@
     "creating": "Creating...",
     "created": "Created \"{{name}}\"",
     "createValidation": "ID and name are required",
-    "createIdInvalid": "ID can only contain letters, numbers, hyphens, and underscores"
+    "createIdInvalid": "ID can only contain letters, numbers, hyphens, and underscores",
+    "saveCurrentTitle": "Save Current Persona",
+    "confirmSaveCurrent": "Save Persona",
+    "cancelSaveCurrent": "Cancel",
+    "savingCurrent": "Saving..."
   },
   "skills": {
     "title": "Skills",

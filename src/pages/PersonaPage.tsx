@@ -74,6 +74,17 @@ function MyPersonas({ agent }: { agent: string }) {
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<string | null>(null);
   const [selectedForSnapshots, setSelectedForSnapshots] = useState<string | null>(null);
+  const [savingCurrent, setSavingCurrent] = useState(false);
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveForm, setSaveForm] = useState({
+    id: "",
+    name: "",
+    description: "",
+    tags: "",
+    required: "",
+    recommended: "",
+    optional: "",
+  });
   const toast = useToast();
 
   const load = async () => {
@@ -124,25 +135,31 @@ function MyPersonas({ agent }: { agent: string }) {
   };
 
   const handleSaveCurrent = async () => {
-    const id = prompt(t("persona.saveCurrentPrompt"));
-    if (!id) return;
-    const name = prompt(t("persona.namePrompt"), id) || id;
-    const description = prompt(t("persona.descPrompt"), "") || "";
-    const tags = parseCommaList(prompt(t("persona.tagsPrompt"), "") || "");
-    const required = parseCommaList(prompt(t("persona.requiredPrompt"), "") || "");
-    const recommended = parseCommaList(prompt(t("persona.recommendedPrompt"), "") || "");
-    const optional = parseCommaList(prompt(t("persona.optionalPrompt"), "") || "");
+    const id = saveForm.id.trim();
+    const name = saveForm.name.trim() || id;
+    if (!id) {
+      toast.show(t("persona.createValidation"), "error");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+      toast.show(t("persona.createIdInvalid"), "error");
+      return;
+    }
+    setSavingCurrent(true);
     try {
-      await api.saveCurrentAsPersona(agent, id, name, description, "🤖", tags, {
-        required,
-        recommended,
-        optional,
+      await api.saveCurrentAsPersona(agent, id, name, saveForm.description.trim(), "🤖", parseCommaList(saveForm.tags), {
+        required: parseCommaList(saveForm.required),
+        recommended: parseCommaList(saveForm.recommended),
+        optional: parseCommaList(saveForm.optional),
       });
       toast.show(t("persona.savedCurrent", { name }));
+      setShowSaveForm(false);
+      setSaveForm({ id: "", name: "", description: "", tags: "", required: "", recommended: "", optional: "" });
       await load();
     } catch (e: any) {
       toast.show(e?.toString() || "Error", "error");
     }
+    setSavingCurrent(false);
   };
 
   if (loading) return <div>{t("common.loading")}</div>;
@@ -166,10 +183,64 @@ function MyPersonas({ agent }: { agent: string }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <button className="btn btn-primary" onClick={handleSaveCurrent}>
-          {t("persona.saveCurrent")}
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowSaveForm((prev) => !prev)}
+        >
+          {showSaveForm ? t("persona.cancelSaveCurrent") : t("persona.saveCurrent")}
         </button>
       </div>
+
+      {showSaveForm && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <h3>{t("persona.saveCurrentTitle")}</h3>
+          </div>
+          <div className="create-form">
+            <div className="form-row">
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>{t("persona.idLabel")}</label>
+                <input className="form-input" value={saveForm.id} onChange={(e) => setSaveForm((prev) => ({ ...prev, id: e.target.value }))} placeholder="my-persona" />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>{t("persona.nameLabel")}</label>
+                <input className="form-input" value={saveForm.name} onChange={(e) => setSaveForm((prev) => ({ ...prev, name: e.target.value }))} placeholder={t("persona.namePlaceholder")} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>{t("persona.descLabel")}</label>
+              <input className="form-input" value={saveForm.description} onChange={(e) => setSaveForm((prev) => ({ ...prev, description: e.target.value }))} placeholder={t("persona.descPlaceholder")} />
+            </div>
+            <div className="form-group">
+              <label>{t("persona.tagsLabel")}</label>
+              <input className="form-input" value={saveForm.tags} onChange={(e) => setSaveForm((prev) => ({ ...prev, tags: e.target.value }))} placeholder={t("persona.tagsPlaceholder")} />
+            </div>
+            <div className="persona-skill-pack-editor">
+              <div className="persona-section-title">{t("persona.skillPackTitle")}</div>
+              <div className="form-group">
+                <label>{t("persona.required")}</label>
+                <input className="form-input" value={saveForm.required} onChange={(e) => setSaveForm((prev) => ({ ...prev, required: e.target.value }))} placeholder={t("persona.skillsPlaceholder")} />
+              </div>
+              <div className="form-group">
+                <label>{t("persona.recommended")}</label>
+                <input className="form-input" value={saveForm.recommended} onChange={(e) => setSaveForm((prev) => ({ ...prev, recommended: e.target.value }))} placeholder={t("persona.skillsPlaceholder")} />
+              </div>
+              <div className="form-group">
+                <label>{t("persona.optional")}</label>
+                <input className="form-input" value={saveForm.optional} onChange={(e) => setSaveForm((prev) => ({ ...prev, optional: e.target.value }))} placeholder={t("persona.skillsPlaceholder")} />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button className="btn btn-secondary" onClick={() => setShowSaveForm(false)} disabled={savingCurrent}>
+                {t("persona.cancelSaveCurrent")}
+              </button>
+              <button className="btn btn-primary" onClick={handleSaveCurrent} disabled={savingCurrent}>
+                {savingCurrent ? t("persona.savingCurrent") : t("persona.confirmSaveCurrent")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {personas.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 40 }}>

@@ -92,7 +92,11 @@
     "creating": "创建中...",
     "created": "已创建「{{name}}」",
     "createValidation": "ID 和名称不能为空",
-    "createIdInvalid": "ID 只能包含英文字母、数字、下划线和连字符"
+    "createIdInvalid": "ID 只能包含英文字母、数字、下划线和连字符",
+    "saveCurrentTitle": "保存当前人格",
+    "confirmSaveCurrent": "确认保存",
+    "cancelSaveCurrent": "取消",
+    "savingCurrent": "保存中..."
   },
   "skills": {
     "title": "技能",
