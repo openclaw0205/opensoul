@@ -133,6 +133,7 @@
     "previewTitle": "Skill Preview",
     "closePreview": "Close",
     "loadingPreview": "Loading preview...",
+    "previewTruncated": "Preview content was truncated to keep the app responsive.",
     "versionLabel": "Version",
     "installFromClawhub": "Install from ClawHub",
     "reinstall": "Reinstall",

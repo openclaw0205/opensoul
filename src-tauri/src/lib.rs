@@ -125,6 +125,7 @@ pub struct ClawHubSkillInfo {
 pub struct ClawHubSkillDetail {
     pub meta: ClawHubSkillInfo,
     pub content: String,
+    pub truncated: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -1081,6 +1082,18 @@ fn clawhub_inspect(skill_id: String) -> Result<ClawHubSkillDetail, String> {
         .as_object()
         .map(|m| m.keys().cloned().collect())
         .unwrap_or_else(Vec::new);
+    let raw_content = v["file"]["content"].as_str().unwrap_or("").to_string();
+    let max_preview_chars = 60_000usize;
+    let truncated = raw_content.chars().count() > max_preview_chars;
+    let content = if truncated {
+        let prefix: String = raw_content.chars().take(max_preview_chars).collect();
+        format!(
+            "{}\n\n---\n[Preview truncated by OpenSoul to keep the app responsive. Use ClawHub / local files for the full SKILL.md.]",
+            prefix
+        )
+    } else {
+        raw_content
+    };
     Ok(ClawHubSkillDetail {
         meta: ClawHubSkillInfo {
             id: v["skill"]["slug"].as_str().unwrap_or("").to_string(),
@@ -1090,7 +1103,8 @@ fn clawhub_inspect(skill_id: String) -> Result<ClawHubSkillDetail, String> {
             version: v["version"]["version"].as_str().unwrap_or("").to_string(),
             source: "clawhub".to_string(),
         },
-        content: v["file"]["content"].as_str().unwrap_or("").to_string(),
+        content,
+        truncated,
     })
 }
 

@@ -19,6 +19,7 @@ export default function SkillsPage({ agent }: Props) {
   const [cloudError, setCloudError] = useState("");
   const [workingSkill, setWorkingSkill] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [previewingSkillId, setPreviewingSkillId] = useState<string | null>(null);
   const [selectedCloudSkill, setSelectedCloudSkill] = useState<ClawHubSkillDetail | null>(null);
   const [detailError, setDetailError] = useState("");
   const [clawhubReady, setClawhubReady] = useState(false);
@@ -75,6 +76,7 @@ export default function SkillsPage({ agent }: Props) {
   }, [activePersona]);
 
   const openCloudSkillDetail = async (skillId: string) => {
+    setPreviewingSkillId(skillId);
     setDetailLoading(true);
     setDetailError("");
     setSelectedCloudSkill(null);
@@ -82,14 +84,17 @@ export default function SkillsPage({ agent }: Props) {
       setSelectedCloudSkill(await api.clawhubInspect(skillId));
     } catch (e: any) {
       setDetailError(e?.toString() || "Failed to load skill detail");
+    } finally {
+      setDetailLoading(false);
+      setPreviewingSkillId(null);
     }
-    setDetailLoading(false);
   };
 
   const closeCloudSkillDetail = () => {
     setSelectedCloudSkill(null);
     setDetailError("");
     setDetailLoading(false);
+    setPreviewingSkillId(null);
   };
 
   const handleDelete = async (name: string) => {
@@ -285,7 +290,7 @@ export default function SkillsPage({ agent }: Props) {
                             {skill.tags.length > 0 && <div className="persona-tags">{skill.tags.map((tag) => <span key={`${skill.id}-${tag}`} className="persona-tag">{tag}</span>)}</div>}
                             <div className="skill-actions">
                               <button className="btn btn-secondary btn-sm" onClick={() => openCloudSkillDetail(skill.id)} disabled={detailLoading || workingSkill !== null}>
-                                {t("skills.preview")}
+                                {previewingSkillId === skill.id ? t("skills.loadingPreview") : t("skills.preview")}
                               </button>
                               <button className="btn btn-primary btn-sm" onClick={() => handleInstallFromClawHub(skill.id)} disabled={!clawhubReady || workingSkill !== null}>
                                 {workingSkill === skill.id ? t("skills.working") : installedHere ? t("skills.reinstall") : t("skills.installFromClawhub")}
@@ -325,6 +330,9 @@ export default function SkillsPage({ agent }: Props) {
                   <span className="persona-tag">{t("skills.sourceLabel")}: {selectedCloudSkill.meta.source}</span>
                   {selectedCloudSkill.meta.tags.map((tag) => <span key={`preview-${tag}`} className="persona-tag">{tag}</span>)}
                 </div>
+                {selectedCloudSkill.truncated && (
+                  <div className="preview-warning">{t("skills.previewTruncated")}</div>
+                )}
                 <pre className="skill-preview-content">{selectedCloudSkill.content}</pre>
               </div>
             ) : null}

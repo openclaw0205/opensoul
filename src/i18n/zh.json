@@ -133,6 +133,7 @@
     "previewTitle": "技能预览",
     "closePreview": "关闭",
     "loadingPreview": "加载预览中...",
+    "previewTruncated": "预览内容已截断，以避免大文件导致界面卡顿或崩溃。",
     "versionLabel": "版本",
     "installFromClawhub": "从 ClawHub 安装",
     "reinstall": "重新安装",

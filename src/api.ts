@@ -30,6 +30,7 @@ export interface ClawHubSkillInfo {
 export interface ClawHubSkillDetail {
   meta: ClawHubSkillInfo;
   content: string;
+  truncated?: boolean;
 }
 
 export interface MemoryEntry {

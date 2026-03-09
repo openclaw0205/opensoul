@@ -777,6 +777,16 @@ body {
   margin-bottom: 16px;
 }
 
+.preview-warning {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(252, 184, 92, 0.12);
+  border: 1px solid rgba(252, 184, 92, 0.22);
+  color: var(--warning);
+  font-size: 12px;
+}
+
 .skill-preview-content {
   white-space: pre-wrap;
   word-break: break-word;
@@ -787,6 +797,7 @@ body {
   font-size: 12px;
   line-height: 1.65;
   color: var(--text-primary);
+  max-height: none;
 }
 
 /* Create form */
