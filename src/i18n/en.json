@@ -95,12 +95,40 @@
   },
   "skills": {
     "title": "⚡ Skills",
-    "desc": "Manage installed skills · {{count}} skill(s) installed",
+    "desc": "Manage current persona skills and the Skills Hub · {{count}} installed · {{hubCount}} in hub",
+    "tab": {
+      "overview": "Overview",
+      "installed": "Installed",
+      "hub": "Skills Hub"
+    },
+    "summary": "Summary",
+    "currentPersona": "Current Persona",
+    "skillPackStatus": "Skill Pack Status",
+    "installedCount": "Installed in current persona",
+    "hubCount": "Available in hub",
+    "missingRequired": "Missing required skills",
+    "availableToCopy": "Ready to copy from hub",
+    "installedHere": "Installed in current persona",
+    "sourceLabel": "Source",
+    "copyToPersona": "Copy to Current Persona",
+    "copyAgain": "Copy Again",
+    "installedFromHub": "✅ Copied \"{{name}}\" from {{source}}",
+    "hubEmpty": "No skills in the Skills Hub yet",
+    "noActivePersona": "No active persona. Switch one in the Persona module first.",
+    "required": "Required",
+    "recommended": "Recommended",
+    "optional": "Optional",
+    "working": "Working...",
     "uninstall": "Uninstall",
     "confirmDelete": "Delete skill \"{{name}}\"?",
     "deleted": "Deleted \"{{name}}\"",
     "empty": "No skills installed. Install skills via",
-    "emptyCmd": "openclaw skill install"
+    "emptyCmd": "openclaw skill install",
+    "source": {
+      "hub": "Skills Hub",
+      "builtin": "Built-in Library",
+      "installed": "Current Persona"
+    }
   },
   "memory": {
     "title": "📚 Memory",

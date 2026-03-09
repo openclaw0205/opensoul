@@ -23,6 +23,14 @@ fn personas_dir() -> PathBuf {
     openclaw_dir().join("personas")
 }
 
+fn skill_hub_dir() -> PathBuf {
+    openclaw_dir().join("skill-hub")
+}
+
+fn builtin_skills_dir() -> PathBuf {
+    PathBuf::from("/opt/homebrew/lib/node_modules/openclaw/skills")
+}
+
 fn validate_id(id: &str) -> Result<(), String> {
     if id.is_empty() {
         return Err("ID cannot be empty".to_string());
@@ -34,6 +42,10 @@ fn validate_id(id: &str) -> Result<(), String> {
         return Err("ID can only contain letters, numbers, hyphens, and underscores".to_string());
     }
     Ok(())
+}
+
+fn skill_sources() -> Vec<(&'static str, PathBuf)> {
+    vec![("hub", skill_hub_dir()), ("builtin", builtin_skills_dir())]
 }
 
 fn validate_persona_filename(name: &str) -> Result<(), String> {
@@ -98,6 +110,7 @@ pub struct SkillInfo {
     pub name: String,
     pub description: String,
     pub path: String,
+    pub source: String,
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct MemoryEntry {
@@ -359,6 +372,41 @@ fn load_dir_to_workspace(source: &Path, ws: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn read_skill_description(skill_md: &Path, fallback: &str) -> String {
+    if skill_md.exists() {
+        fs::read_to_string(skill_md)
+            .unwrap_or_default()
+            .lines()
+            .find(|l| l.starts_with("description:"))
+            .map(|l| l.trim_start_matches("description:").trim().trim_matches('"').to_string())
+            .unwrap_or_else(|| fallback.to_string())
+    } else {
+        fallback.to_string()
+    }
+}
+
+fn collect_skills_from_dir(dir: &Path, source: &str) -> Vec<SkillInfo> {
+    if !dir.exists() {
+        return vec![];
+    }
+    let mut skills = vec![];
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let skill_md = entry.path().join("SKILL.md");
+                skills.push(SkillInfo {
+                    description: read_skill_description(&skill_md, &name),
+                    name,
+                    path: entry.path().to_string_lossy().to_string(),
+                    source: source.to_string(),
+                });
+            }
+        }
+    }
+    skills
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
@@ -874,35 +922,44 @@ fn save_persona_file(agent: String, filename: String, content: String) -> Result
 #[command]
 fn list_skills(agent: String) -> Result<Vec<SkillInfo>, String> {
     let skills_dir = workspace_dir(&agent).join("skills");
-    if !skills_dir.exists() {
-        return Ok(vec![]);
-    }
-    let mut skills = vec![];
-    for entry in fs::read_dir(&skills_dir)
-        .map_err(|e| e.to_string())?
-        .flatten()
-    {
-        if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-            let name = entry.file_name().to_string_lossy().to_string();
-            let skill_md = entry.path().join("SKILL.md");
-            let description = if skill_md.exists() {
-                fs::read_to_string(&skill_md)
-                    .unwrap_or_default()
-                    .lines()
-                    .find(|l| l.starts_with("description:"))
-                    .map(|l| l.trim_start_matches("description:").trim().to_string())
-                    .unwrap_or_else(|| name.clone())
-            } else {
-                name.clone()
-            };
-            skills.push(SkillInfo {
-                name,
-                description,
-                path: entry.path().to_string_lossy().to_string(),
-            });
+    let mut skills = collect_skills_from_dir(&skills_dir, "installed");
+    skills.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(skills)
+}
+
+#[command]
+fn list_hub_skills() -> Result<Vec<SkillInfo>, String> {
+    fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
+    let mut merged = std::collections::BTreeMap::<String, SkillInfo>::new();
+    for (source, dir) in skill_sources() {
+        for skill in collect_skills_from_dir(&dir, source) {
+            merged.entry(skill.name.clone()).or_insert(skill);
         }
     }
-    Ok(skills)
+    Ok(merged.into_values().collect())
+}
+
+#[command]
+fn install_skill_from_hub(agent: String, skill_name: String) -> Result<String, String> {
+    validate_id(&skill_name)?;
+    let dst = workspace_dir(&agent).join("skills").join(&skill_name);
+    fs::create_dir_all(dst.parent().ok_or("Invalid skill target")?).map_err(|e| e.to_string())?;
+
+    let mut found: Option<(String, PathBuf)> = None;
+    for (source, dir) in skill_sources() {
+        let candidate = dir.join(&skill_name);
+        if candidate.exists() && candidate.is_dir() {
+            found = Some((source.to_string(), candidate));
+            break;
+        }
+    }
+
+    let (source, src) = found.ok_or_else(|| format!("Skill '{}' not found in hub", skill_name))?;
+    if dst.exists() {
+        fs::remove_dir_all(&dst).map_err(|e| e.to_string())?;
+    }
+    copy_dir_recursive(&src, &dst)?;
+    Ok(source)
 }
 
 #[command]
@@ -1046,6 +1103,8 @@ pub fn run() {
             read_persona,
             save_persona_file,
             list_skills,
+            list_hub_skills,
+            install_skill_from_hub,
             delete_skill,
             list_memories,
             read_long_term_memory,

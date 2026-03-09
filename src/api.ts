@@ -15,6 +15,7 @@ export interface SkillInfo {
   name: string;
   description: string;
   path: string;
+  source?: string;
 }
 
 export interface MemoryEntry {
@@ -85,6 +86,9 @@ export const api = {
 
   // Skills
   listSkills: (agent: string) => invoke<SkillInfo[]>("list_skills", { agent }),
+  listHubSkills: () => invoke<SkillInfo[]>("list_hub_skills"),
+  installSkillFromHub: (agent: string, skillName: string) =>
+    invoke<string>("install_skill_from_hub", { agent, skillName }),
   deleteSkill: (agent: string, skillName: string) =>
     invoke<void>("delete_skill", { agent, skillName }),
 

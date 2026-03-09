@@ -95,12 +95,40 @@
   },
   "skills": {
     "title": "⚡ 技能",
-    "desc": "管理已安装的技能 · 已安装 {{count}} 个技能",
+    "desc": "管理当前人格技能与 Skills Hub · 已安装 {{count}} 个 · Hub {{hubCount}} 个",
+    "tab": {
+      "overview": "概览",
+      "installed": "已安装",
+      "hub": "Skills Hub"
+    },
+    "summary": "摘要",
+    "currentPersona": "当前人格",
+    "skillPackStatus": "人格技能包状态",
+    "installedCount": "当前已安装技能",
+    "hubCount": "Hub 可用技能",
+    "missingRequired": "缺失必需技能",
+    "availableToCopy": "可从 Hub 直接复制",
+    "installedHere": "已安装到当前人格",
+    "sourceLabel": "来源",
+    "copyToPersona": "复制到当前人格",
+    "copyAgain": "重新复制",
+    "installedFromHub": "✅ 已从 {{source}} 复制技能「{{name}}」",
+    "hubEmpty": "Skills Hub 里还没有技能",
+    "noActivePersona": "当前没有激活人格，先去 Persona 模块切换一个人格。",
+    "required": "必需",
+    "recommended": "推荐",
+    "optional": "可选",
+    "working": "处理中...",
     "uninstall": "卸载",
     "confirmDelete": "确定删除技能「{{name}}」？",
     "deleted": "已删除「{{name}}」",
     "empty": "暂无已安装的技能。通过以下命令安装：",
-    "emptyCmd": "openclaw skill install"
+    "emptyCmd": "openclaw skill install",
+    "source": {
+      "hub": "Skills Hub",
+      "builtin": "内置技能库",
+      "installed": "当前人格"
+    }
   },
   "memory": {
     "title": "📚 记忆",

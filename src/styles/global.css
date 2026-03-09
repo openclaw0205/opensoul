@@ -335,6 +335,18 @@ body {
   gap: 8px;
 }
 
+.skill-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.skill-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .skill-card h4 {
   font-size: 14px;
   font-weight: 600;
@@ -600,6 +612,79 @@ body {
 
 .persona-tag-empty {
   color: var(--text-muted);
+}
+
+.persona-tag-installed {
+  border-color: rgba(92, 252, 124, 0.4);
+  color: var(--success);
+}
+
+.skills-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 16px;
+}
+
+.skills-persona-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.skills-persona-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.skills-persona-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.skills-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skills-summary-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.skills-summary-item:last-child {
+  border-bottom: none;
+}
+
+.skills-summary-item span {
+  color: var(--text-secondary);
+}
+
+.skills-summary-item strong {
+  color: var(--text-primary);
+}
+
+.skills-requirement-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.skills-requirement-row:last-child {
+  margin-bottom: 0;
+}
+
+.skills-requirement-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Create form */
