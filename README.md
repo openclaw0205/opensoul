@@ -18,6 +18,12 @@ It gives you a GUI for the parts of OpenClaw that usually live in `~/.openclaw`:
 
 ## Product Model
 
+OpenSoul is an open-source desktop app for local-first persona management.
+
+- Data is stored locally on the user's machine
+- The app must remain compatible with existing OpenClaw data in `~/.openclaw`
+- `~/.openclaw` is treated as a compatibility source, not the only valid future storage model
+
 OpenSoul treats a persona as an evolving workspace, not a static template.
 
 - Switching from persona `A` to persona `B` saves `A` before loading `B`

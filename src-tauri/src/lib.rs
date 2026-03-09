@@ -5,22 +5,48 @@ use tauri::command;
 
 const MAX_SNAPSHOTS: usize = 20;
 
+#[derive(Clone)]
+struct StorageRoots {
+    local_root: PathBuf,
+    openclaw_root: PathBuf,
+}
+
+fn default_local_storage_root() -> PathBuf {
+    dirs::data_local_dir()
+        .or_else(dirs::data_dir)
+        .or_else(dirs::home_dir)
+        .expect("Cannot find local data directory")
+        .join("OpenSoul")
+}
+
 fn openclaw_dir() -> PathBuf {
     dirs::home_dir()
         .expect("Cannot find home directory")
         .join(".openclaw")
 }
 
+fn storage_roots() -> StorageRoots {
+    StorageRoots {
+        local_root: default_local_storage_root(),
+        openclaw_root: openclaw_dir(),
+    }
+}
+
+fn compatibility_root() -> PathBuf {
+    storage_roots().openclaw_root
+}
+
 fn workspace_dir(agent: &str) -> PathBuf {
+    let root = compatibility_root();
     if agent == "main" {
-        openclaw_dir().join("workspace")
+        root.join("workspace")
     } else {
-        openclaw_dir().join("agents").join(agent).join("workspace")
+        root.join("agents").join(agent).join("workspace")
     }
 }
 
 fn personas_dir() -> PathBuf {
-    openclaw_dir().join("personas")
+    compatibility_root().join("personas")
 }
 
 fn builtin_skills_dir() -> PathBuf {
@@ -131,6 +157,12 @@ pub struct MemoryEntry {
 pub struct AgentInfo {
     pub id: String,
     pub has_workspace: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct StorageInfo {
+    pub local_root: String,
+    pub compatibility_root: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -1023,12 +1055,21 @@ fn check_persona_exists(persona_id: String) -> Result<bool, String> {
 // --- Original commands with security fixes ---
 
 #[command]
+fn get_storage_info() -> Result<StorageInfo, String> {
+    let roots = storage_roots();
+    Ok(StorageInfo {
+        local_root: roots.local_root.to_string_lossy().to_string(),
+        compatibility_root: roots.openclaw_root.to_string_lossy().to_string(),
+    })
+}
+
+#[command]
 fn list_agents() -> Result<Vec<AgentInfo>, String> {
     let mut agents = vec![AgentInfo {
         id: "main".to_string(),
         has_workspace: workspace_dir("main").exists(),
     }];
-    let agents_dir = openclaw_dir().join("agents");
+    let agents_dir = compatibility_root().join("agents");
     if agents_dir.exists() {
         for entry in fs::read_dir(&agents_dir)
             .map_err(|e| e.to_string())?
@@ -1237,7 +1278,7 @@ fn restore_persona_backup(agent: String, backup_path: String) -> Result<(), Stri
 
 #[command]
 fn read_config() -> Result<String, String> {
-    let p = openclaw_dir().join("openclaw.json");
+    let p = compatibility_root().join("openclaw.json");
     if p.exists() {
         fs::read_to_string(&p).map_err(|e| e.to_string())
     } else {
@@ -1249,13 +1290,14 @@ fn read_config() -> Result<String, String> {
 fn save_config(content: String) -> Result<(), String> {
     let _: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
-    fs::write(openclaw_dir().join("openclaw.json"), &content).map_err(|e| e.to_string())
+    fs::write(compatibility_root().join("openclaw.json"), &content).map_err(|e| e.to_string())
 }
 
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            get_storage_info,
             list_agents,
             read_persona,
             save_persona_file,
