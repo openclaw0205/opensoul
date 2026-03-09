@@ -18,6 +18,17 @@ export interface SkillInfo {
   source?: string;
 }
 
+export interface CloudSkillInfo {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  version: string;
+  source: string;
+  homepage?: string;
+  download_url?: string;
+}
+
 export interface MemoryEntry {
   filename: string;
   date: string;
@@ -87,8 +98,14 @@ export const api = {
   // Skills
   listSkills: (agent: string) => invoke<SkillInfo[]>("list_skills", { agent }),
   listHubSkills: () => invoke<SkillInfo[]>("list_hub_skills"),
+  fetchCloudSkills: () => invoke<CloudSkillInfo[]>("fetch_cloud_skills"),
+  downloadCloudSkillToHub: (skillId: string) =>
+    invoke<string>("download_cloud_skill_to_hub", { skillId }),
+  downloadCloudSkillToPersona: (agent: string, skillId: string) =>
+    invoke<string>("download_cloud_skill_to_persona", { agent, skillId }),
   installSkillFromHub: (agent: string, skillName: string) =>
     invoke<string>("install_skill_from_hub", { agent, skillName }),
+  deleteHubSkill: (skillName: string) => invoke<void>("delete_hub_skill", { skillName }),
   deleteSkill: (agent: string, skillName: string) =>
     invoke<void>("delete_skill", { agent, skillName }),
 

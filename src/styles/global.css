@@ -289,6 +289,28 @@ body {
 }
 
 /* Tabs */
+.subtabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subtab {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+}
+
+.subtab.active {
+  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 .tabs {
   display: flex;
   gap: 2px;

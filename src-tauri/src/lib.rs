@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use tauri::command;
 
 const MAX_SNAPSHOTS: usize = 20;
+const OPENSOUL_SKILLS_INDEX_URL: &str = "https://raw.githubusercontent.com/openclaw0205/opensoul-skills/main/index.json";
 
 fn openclaw_dir() -> PathBuf {
     dirs::home_dir()
@@ -112,6 +113,23 @@ pub struct SkillInfo {
     pub path: String,
     pub source: String,
 }
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CloudSkillInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub version: String,
+    #[serde(default)]
+    pub source: String,
+    #[serde(default)]
+    pub homepage: String,
+    #[serde(default)]
+    pub download_url: String,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct MemoryEntry {
     pub filename: String,
@@ -407,6 +425,68 @@ fn collect_skills_from_dir(dir: &Path, source: &str) -> Vec<SkillInfo> {
         }
     }
     skills
+}
+
+fn resolve_cloud_skill_download_url(skill: &CloudSkillInfo) -> String {
+    if !skill.download_url.trim().is_empty() {
+        skill.download_url.trim().to_string()
+    } else {
+        format!(
+            "https://raw.githubusercontent.com/openclaw0205/opensoul-skills/main/skills/{}/SKILL.md",
+            skill.id
+        )
+    }
+}
+
+async fn fetch_cloud_skills_index() -> Result<Vec<CloudSkillInfo>, String> {
+    let resp = reqwest::Client::new()
+        .get(OPENSOUL_SKILLS_INDEX_URL)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("Failed to fetch cloud skills: {}", resp.status()));
+    }
+    let mut skills: Vec<CloudSkillInfo> = resp.json().await.map_err(|e| e.to_string())?;
+    for skill in skills.iter_mut() {
+        if skill.source.trim().is_empty() {
+            skill.source = "opensoul".to_string();
+        }
+    }
+    Ok(skills)
+}
+
+async fn download_cloud_skill_impl(skill_id: &str) -> Result<String, String> {
+    validate_id(skill_id)?;
+    fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
+    let skills = fetch_cloud_skills_index().await?;
+    let skill = skills
+        .into_iter()
+        .find(|item| item.id == skill_id)
+        .ok_or_else(|| format!("Cloud skill '{}' not found", skill_id))?;
+    let skill_dir = skill_hub_dir().join(&skill.id);
+    if skill_dir.exists() {
+        fs::remove_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+    }
+    fs::create_dir_all(&skill_dir).map_err(|e| e.to_string())?;
+
+    let download_url = resolve_cloud_skill_download_url(&skill);
+    let resp = reqwest::Client::new()
+        .get(&download_url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("Failed to download skill '{}': {}", skill.id, resp.status()));
+    }
+    let skill_md = resp.text().await.map_err(|e| e.to_string())?;
+    fs::write(skill_dir.join("SKILL.md"), skill_md).map_err(|e| e.to_string())?;
+    fs::write(
+        skill_dir.join("hub-meta.json"),
+        serde_json::to_string_pretty(&skill).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(skill.id)
 }
 
 fn install_skill_from_sources(agent: &str, skill_name: &str) -> Result<String, String> {
@@ -971,6 +1051,23 @@ fn list_skills(agent: String) -> Result<Vec<SkillInfo>, String> {
 }
 
 #[command]
+async fn fetch_cloud_skills() -> Result<Vec<CloudSkillInfo>, String> {
+    fetch_cloud_skills_index().await
+}
+
+#[command]
+async fn download_cloud_skill_to_hub(skill_id: String) -> Result<String, String> {
+    download_cloud_skill_impl(&skill_id).await
+}
+
+#[command]
+async fn download_cloud_skill_to_persona(agent: String, skill_id: String) -> Result<String, String> {
+    let skill_name = download_cloud_skill_impl(&skill_id).await?;
+    install_skill_from_sources(&agent, &skill_name)?;
+    Ok(skill_name)
+}
+
+#[command]
 fn list_hub_skills() -> Result<Vec<SkillInfo>, String> {
     fs::create_dir_all(skill_hub_dir()).map_err(|e| e.to_string())?;
     let mut merged = std::collections::BTreeMap::<String, SkillInfo>::new();
@@ -985,6 +1082,16 @@ fn list_hub_skills() -> Result<Vec<SkillInfo>, String> {
 #[command]
 fn install_skill_from_hub(agent: String, skill_name: String) -> Result<String, String> {
     install_skill_from_sources(&agent, &skill_name)
+}
+
+#[command]
+fn delete_hub_skill(skill_name: String) -> Result<(), String> {
+    validate_id(&skill_name)?;
+    let p = skill_hub_dir().join(&skill_name);
+    if p.exists() {
+        fs::remove_dir_all(&p).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[command]
@@ -1128,8 +1235,12 @@ pub fn run() {
             read_persona,
             save_persona_file,
             list_skills,
+            fetch_cloud_skills,
+            download_cloud_skill_to_hub,
+            download_cloud_skill_to_persona,
             list_hub_skills,
             install_skill_from_hub,
+            delete_hub_skill,
             delete_skill,
             list_memories,
             read_long_term_memory,

@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, SkillInfo, PersonaMeta } from "../api";
+import { api, SkillInfo, PersonaMeta, CloudSkillInfo } from "../api";
 
 interface Props {
   agent: string;
 }
 
 type Tab = "overview" | "installed" | "hub";
+type HubSubTab = "local" | "cloud";
 
 export default function SkillsPage({ agent }: Props) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("overview");
+  const [hubTab, setHubTab] = useState<HubSubTab>("local");
   const [installed, setInstalled] = useState<SkillInfo[]>([]);
   const [hubSkills, setHubSkills] = useState<SkillInfo[]>([]);
+  const [cloudSkills, setCloudSkills] = useState<CloudSkillInfo[]>([]);
   const [activePersona, setActivePersona] = useState<PersonaMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,13 +31,15 @@ export default function SkillsPage({ agent }: Props) {
     setLoading(true);
     setError("");
     try {
-      const [installedSkills, hub, personas] = await Promise.all([
+      const [installedSkills, hub, cloud, personas] = await Promise.all([
         api.listSkills(agent),
         api.listHubSkills(),
+        api.fetchCloudSkills().catch(() => []),
         api.listPersonas(agent),
       ]);
       setInstalled(installedSkills);
       setHubSkills(hub);
+      setCloudSkills(cloud);
       setActivePersona(personas.find((p) => p.is_active) ?? null);
     } catch (e: any) {
       setError(e?.toString() || "Failed to load skills");
@@ -48,6 +53,7 @@ export default function SkillsPage({ agent }: Props) {
 
   const installedSet = useMemo(() => new Set(installed.map((s) => s.name)), [installed]);
   const hubSet = useMemo(() => new Set(hubSkills.map((s) => s.name)), [hubSkills]);
+  const cloudSet = useMemo(() => new Set(cloudSkills.map((s) => s.id)), [cloudSkills]);
 
   const skillRequirements = useMemo(() => {
     const required = activePersona?.skill_pack.required ?? [];
@@ -77,6 +83,43 @@ export default function SkillsPage({ agent }: Props) {
       await load();
     } catch (e: any) {
       showToast(e?.toString() || "Failed to install", "error");
+    }
+    setWorkingSkill(null);
+  };
+
+  const handleDeleteHubSkill = async (name: string) => {
+    if (!confirm(t("skills.confirmDeleteHub", { name }))) return;
+    setWorkingSkill(name);
+    try {
+      await api.deleteHubSkill(name);
+      showToast(t("skills.deletedHub", { name }));
+      await load();
+    } catch (e: any) {
+      showToast(e?.toString() || "Failed to delete", "error");
+    }
+    setWorkingSkill(null);
+  };
+
+  const handleDownloadToHub = async (skillId: string) => {
+    setWorkingSkill(skillId);
+    try {
+      const name = await api.downloadCloudSkillToHub(skillId);
+      showToast(t("skills.downloadedToHub", { name }));
+      await load();
+    } catch (e: any) {
+      showToast(e?.toString() || "Failed to download", "error");
+    }
+    setWorkingSkill(null);
+  };
+
+  const handleDownloadToPersona = async (skillId: string) => {
+    setWorkingSkill(skillId);
+    try {
+      const name = await api.downloadCloudSkillToPersona(agent, skillId);
+      showToast(t("skills.downloadedToPersona", { name }));
+      await load();
+    } catch (e: any) {
+      showToast(e?.toString() || "Failed to download", "error");
     }
     setWorkingSkill(null);
   };
@@ -166,10 +209,11 @@ export default function SkillsPage({ agent }: Props) {
                                 row.items.map((name) => {
                                   const installedHere = installedSet.has(name);
                                   const inHub = hubSet.has(name);
+                                  const inCloud = cloudSet.has(name);
                                   return (
                                     <span key={`${row.key}-${name}`} className={`persona-tag ${installedHere ? "persona-tag-installed" : ""}`}>
                                       {name}
-                                      {installedHere ? " ✓" : inHub ? " ⬇" : " ⚠"}
+                                      {installedHere ? " ✓" : inHub ? " ⬇" : inCloud ? " ☁" : " ⚠"}
                                     </span>
                                   );
                                 })
@@ -198,19 +242,13 @@ export default function SkillsPage({ agent }: Props) {
                       <strong>{hubSkills.length}</strong>
                     </div>
                     <div className="skills-summary-item">
+                      <span>{t("skills.cloudCount")}</span>
+                      <strong>{cloudSkills.length}</strong>
+                    </div>
+                    <div className="skills-summary-item">
                       <span>{t("skills.missingRequired")}</span>
                       <strong>
                         {skillRequirements.required.filter((name) => !installedSet.has(name)).length}
-                      </strong>
-                    </div>
-                    <div className="skills-summary-item">
-                      <span>{t("skills.availableToCopy")}</span>
-                      <strong>
-                        {
-                          [...skillRequirements.required, ...skillRequirements.recommended]
-                            .filter((name, index, arr) => arr.indexOf(name) === index)
-                            .filter((name) => !installedSet.has(name) && hubSet.has(name)).length
-                        }
                       </strong>
                     </div>
                   </div>
@@ -247,42 +285,127 @@ export default function SkillsPage({ agent }: Props) {
             )}
 
             {tab === "hub" && (
-              hubSkills.length === 0 ? (
-                <div className="card">
-                  <p style={{ color: "var(--text-secondary)" }}>{t("skills.hubEmpty")}</p>
+              <>
+                <div className="subtabs" style={{ marginBottom: 16 }}>
+                  {(["local", "cloud"] as HubSubTab[]).map((item) => (
+                    <button
+                      key={item}
+                      className={`subtab ${hubTab === item ? "active" : ""}`}
+                      onClick={() => setHubTab(item)}
+                    >
+                      {t(`skills.hubTab.${item}`)}
+                    </button>
+                  ))}
                 </div>
-              ) : (
-                <div className="skills-grid">
-                  {hubSkills.map((skill) => {
-                    const alreadyInstalled = installedSet.has(skill.name);
-                    return (
-                      <div key={`${skill.source}-${skill.name}`} className="skill-card">
-                        <div className="skill-card-header-row">
-                          <h4>{skill.name}</h4>
-                          {renderMatchBadge(skill.name)}
-                        </div>
-                        <p>{skill.description}</p>
-                        <div className="skill-meta">
-                          {t("skills.sourceLabel")}: {t(`skills.source.${skill.source || "hub"}`)}
-                        </div>
-                        <div className="skill-actions">
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => handleInstallFromHub(skill.name)}
-                            disabled={workingSkill !== null}
-                          >
-                            {workingSkill === skill.name
-                              ? t("skills.working")
-                              : alreadyInstalled
-                                ? t("skills.copyAgain")
-                                : t("skills.copyToPersona")}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )
+
+                {hubTab === "local" && (
+                  hubSkills.length === 0 ? (
+                    <div className="card">
+                      <p style={{ color: "var(--text-secondary)" }}>{t("skills.hubEmpty")}</p>
+                    </div>
+                  ) : (
+                    <div className="skills-grid">
+                      {hubSkills.map((skill) => {
+                        const alreadyInstalled = installedSet.has(skill.name);
+                        const localHubSkill = skill.source === "hub";
+                        return (
+                          <div key={`${skill.source}-${skill.name}`} className="skill-card">
+                            <div className="skill-card-header-row">
+                              <h4>{skill.name}</h4>
+                              {renderMatchBadge(skill.name)}
+                            </div>
+                            <p>{skill.description}</p>
+                            <div className="skill-meta">
+                              {t("skills.sourceLabel")}: {t(`skills.source.${skill.source || "hub"}`)}
+                            </div>
+                            <div className="skill-actions">
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleInstallFromHub(skill.name)}
+                                disabled={workingSkill !== null}
+                              >
+                                {workingSkill === skill.name
+                                  ? t("skills.working")
+                                  : alreadyInstalled
+                                    ? t("skills.copyAgain")
+                                    : t("skills.copyToPersona")}
+                              </button>
+                              {localHubSkill && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => handleDeleteHubSkill(skill.name)}
+                                  disabled={workingSkill !== null}
+                                >
+                                  {t("skills.removeFromHub")}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+
+                {hubTab === "cloud" && (
+                  cloudSkills.length === 0 ? (
+                    <div className="card">
+                      <p style={{ color: "var(--text-secondary)" }}>{t("skills.cloudEmpty")}</p>
+                    </div>
+                  ) : (
+                    <div className="skills-grid">
+                      {cloudSkills.map((skill) => {
+                        const cached = hubSet.has(skill.id);
+                        const installedHere = installedSet.has(skill.id);
+                        return (
+                          <div key={skill.id} className="skill-card">
+                            <div className="skill-card-header-row">
+                              <h4>{skill.name}</h4>
+                              {renderMatchBadge(skill.id)}
+                            </div>
+                            <p>{skill.description}</p>
+                            <div className="skill-meta">
+                              {skill.version && <span>{t("skills.versionLabel")}: {skill.version}</span>}
+                              <span style={{ marginLeft: 8 }}>{t("skills.sourceLabel")}: {skill.source || "opensoul"}</span>
+                            </div>
+                            {skill.tags.length > 0 && (
+                              <div className="persona-tags">
+                                {skill.tags.map((tag) => (
+                                  <span key={`${skill.id}-${tag}`} className="persona-tag">{tag}</span>
+                                ))}
+                              </div>
+                            )}
+                            <div className="skill-actions">
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleDownloadToHub(skill.id)}
+                                disabled={workingSkill !== null}
+                              >
+                                {workingSkill === skill.id
+                                  ? t("skills.working")
+                                  : cached
+                                    ? t("skills.redownloadToHub")
+                                    : t("skills.downloadToHub")}
+                              </button>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleDownloadToPersona(skill.id)}
+                                disabled={workingSkill !== null}
+                              >
+                                {workingSkill === skill.id
+                                  ? t("skills.working")
+                                  : installedHere
+                                    ? t("skills.redownloadToPersona")
+                                    : t("skills.downloadToPersona")}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+              </>
             )}
           </>
         )}
