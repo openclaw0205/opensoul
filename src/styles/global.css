@@ -1,18 +1,18 @@
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-tertiary: #1a1a2e;
-  --bg-hover: #222240;
-  --text-primary: #e8e8f0;
-  --text-secondary: #8888a8;
-  --text-muted: #555570;
-  --accent: #7c5cfc;
-  --accent-hover: #9b7fff;
-  --accent-dim: rgba(124, 92, 252, 0.15);
-  --border: #2a2a40;
-  --danger: #fc5c5c;
-  --success: #5cfc7c;
-  --warning: #fcb85c;
+  --bg-primary: #0f1117;
+  --bg-secondary: #151923;
+  --bg-tertiary: #1b2130;
+  --bg-hover: #21293b;
+  --text-primary: #ffffff;
+  --text-secondary: #8892b0;
+  --text-muted: #61708f;
+  --accent: #ff4f4d;
+  --accent-hover: #ff6a68;
+  --accent-dim: rgba(255, 79, 77, 0.14);
+  --border: rgba(136, 146, 176, 0.18);
+  --danger: #ff4f4d;
+  --success: #ffffff;
+  --warning: #ffb86b;
   --radius: 8px;
   --radius-lg: 12px;
 }
@@ -102,15 +102,15 @@ body {
 
 .nav-item:hover {
   background: var(--bg-hover);
-  border-color: rgba(124, 92, 252, 0.16);
+  border-color: rgba(255, 79, 77, 0.14);
   color: var(--text-primary);
 }
 
 .nav-item.active {
   background: var(--accent-dim);
-  border-color: rgba(124, 92, 252, 0.28);
+  border-color: rgba(255, 79, 77, 0.28);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(124, 92, 252, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 79, 77, 0.08);
 }
 
 .sidebar-footer {
@@ -411,7 +411,7 @@ body {
 }
 
 .memory-item:hover {
-  border-color: var(--accent);
+  border-color: rgba(255, 79, 77, 0.36);
 }
 
 .memory-item .date {
@@ -485,17 +485,17 @@ body {
 }
 
 .badge-success {
-  background: rgba(92, 252, 124, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--success);
 }
 
 .badge-warning {
-  background: rgba(252, 184, 92, 0.15);
+  background: rgba(255, 184, 107, 0.14);
   color: var(--warning);
 }
 
 .badge-muted {
-  background: rgba(136, 136, 168, 0.12);
+  background: rgba(136, 146, 176, 0.12);
   color: var(--text-secondary);
 }
 
@@ -526,7 +526,7 @@ body {
 }
 
 .persona-card-active {
-  border-color: var(--accent);
+  border-color: rgba(255, 79, 77, 0.36);
   background: linear-gradient(135deg, var(--bg-secondary), var(--accent-dim));
 }
 
@@ -645,7 +645,7 @@ body {
 }
 
 .persona-tag-installed {
-  border-color: rgba(92, 252, 124, 0.4);
+  border-color: rgba(255, 255, 255, 0.24);
   color: var(--success);
 }
 
