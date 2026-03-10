@@ -1,76 +1,77 @@
 # OpenSoul
 
-OpenSoul is a local-first desktop app for managing AI persona assets.
+OpenSoul is a local desktop control panel for OpenClaw.
 
-It helps you own, organize, switch, and protect the parts that make an AI feel continuous:
+It is designed for everyday users who do not want to manage everything by editing files manually.
 
-- persona
-- skills
-- memory
-- backups
+With OpenSoul, you can use a visual interface to handle the common things people actually need after OpenClaw is installed:
 
-Instead of treating AI as a temporary chat window, OpenSoul treats it as a system you can operate locally.
+- switch persona
+- manage skills
+- view memory
+- create backups
+- restore safely
+- edit basic config
 
 ## One-line Definition
 
-**OpenSoul helps you manage AI persona assets locally — who the AI is, what it can do, what it remembers, and how to restore it safely.**
+**OpenSoul is a simple local control panel for OpenClaw, built to help normal users use, switch, back up, and maintain their AI more safely.**
+
+## Why It Exists
+
+OpenClaw is powerful, but many users are not comfortable managing files like:
+
+- `SOUL.md`
+- `MEMORY.md`
+- `skills/`
+- `personas/`
+- `openclaw.json`
+
+For experienced users, that may be fine.
+For beginners, it is easy to get confused or break something accidentally.
+
+OpenSoul exists to make that workflow easier, safer, and more visual.
 
 ## Who It Is For
 
-OpenSoul is built for people who use OpenClaw seriously and want more than raw file editing:
+OpenSoul is mainly for:
 
-- people running multiple personas
-- people treating AI as a long-term companion or working partner
-- developers experimenting with persona + skills + memory workflows
-- OpenClaw users who want a safer, more visual local control panel
+- beginners using OpenClaw for the first time
+- people who want a clear visual panel instead of raw file editing
+- users who need simple backup and restore safety
+- people you help install OpenClaw for, who need an easy follow-up tool
 
-## What Problem It Solves
+## Core Value
 
-OpenClaw is powerful, but once you start using multiple personas, skills, memories, and backups, the file-based workflow becomes hard to manage.
+The value of OpenSoul is not complexity.
+The value is:
 
-The real problem is not "how to chat with AI".
-The real problem is:
+- easier to understand
+- easier to operate
+- harder to break
+- easier to recover
 
-- how to manage who the AI is
-- how to manage what skills are attached to it
-- how to keep memory continuous
-- how to switch or recover safely without breaking things
-
-OpenSoul exists to reduce that operational complexity.
-
-## Core Product Idea
-
-OpenSoul is not just a GUI for markdown files.
-
-It is an **AI identity and continuity manager**.
-
-That means it focuses on four core layers:
-
-1. **Persona** — who the AI is
-2. **Skills** — what the AI can do
-3. **Memory** — what the AI remembers
-4. **Backup** — how the AI can be protected and restored
+It should feel like a companion app or maintenance panel for OpenClaw, not a heavy professional control system.
 
 ## Product Principles
 
-- **Local-first** — user data lives on the local machine
-- **Open-source** — the project must stay transparent and usable
-- **OpenClaw-compatible** — it can read and manage existing `.openclaw` data
-- **Cross-platform** — designed for desktop, with macOS now and Windows support in scope
-
-OpenSoul currently works directly with local OpenClaw data, while also moving toward a cleaner local storage model for the future.
+- **Local-first** — user data stays on the local machine
+- **Open-source** — transparent and easy to adopt
+- **OpenClaw-compatible** — can read existing `.openclaw` data
+- **Desktop-focused** — built for desktop use, with macOS now and Windows in scope
+- **Beginner-friendly** — simple operations first, advanced complexity later
 
 ## What It Does Today
 
 ### Persona
 - manage local personas
-- switch personas safely
 - save the current state as a persona
+- switch personas safely
 - download community personas
 - browse and restore persona snapshots
 
 ### Skills
-- inspect installed skills
+- view installed skills
 - connect to official ClawHub
 - search and install skills
 - update installed skills
@@ -80,7 +81,7 @@ OpenSoul currently works directly with local OpenClaw data, while also moving to
 - read long-term memory
 
 ### Backup
-- manage snapshot backups across all personas
+- manage snapshot backups across personas
 - restore a selected backup
 - export and import archive backups
 
@@ -89,7 +90,7 @@ OpenSoul currently works directly with local OpenClaw data, while also moving to
 
 ## Current Data Model
 
-Today, OpenSoul remains compatible with OpenClaw's local structure:
+OpenSoul works with local OpenClaw data and stays compatible with `.openclaw`:
 
 ```text
 ~/.openclaw/
@@ -99,21 +100,13 @@ Today, OpenSoul remains compatible with OpenClaw's local structure:
 └── openclaw.json
 ```
 
-But the product direction is broader than that:
+The long-term direction is still local-first desktop usage, without forcing users to live only inside a hidden folder forever.
 
-- OpenSoul data should remain local
-- `.openclaw` is an important compatibility source
-- local storage should not be mentally limited to a single hidden directory forever
+## What OpenSoul Is Not
 
-## Why This Project Matters
+OpenSoul is not trying to be a complex enterprise-style AI management platform.
 
-Most AI products treat identity as temporary.
-
-OpenSoul takes the opposite approach:
-
-> your AI should be something you can configure, switch, preserve, and recover — not just a disposable session.
-
-That is the real value of the project.
+It is a practical desktop utility for helping users run OpenClaw with less confusion and more safety.
 
 ## Tech Stack
 
