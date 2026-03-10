@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 
@@ -6,36 +6,20 @@ interface Props {
   agent: string;
 }
 
-const SENSITIVE_KEYS = new Set(["apikey", "token", "secret", "password", "bottoken"]);
+type ConfigTab = "models" | "channels";
 
-interface SectionDef {
-  key: string;
-  icon: string;
-}
-
-const SECTIONS: SectionDef[] = [
-  { key: "meta", icon: "ℹ️" },
-  { key: "wizard", icon: "🧙" },
-  { key: "browser", icon: "🌐" },
-  { key: "auth", icon: "🔐" },
-  { key: "models", icon: "🤖" },
-  { key: "agents", icon: "🦞" },
-  { key: "messages", icon: "💬" },
-  { key: "commands", icon: "⌨️" },
-  { key: "channels", icon: "📡" },
-  { key: "gateway", icon: "🚪" },
-  { key: "skills", icon: "⚡" },
-  { key: "plugins", icon: "🔌" },
-];
+const SENSITIVE_KEYS = new Set(["apikey", "api_key", "token", "secret", "password", "bottoken"]);
 
 export default function ConfigPage({ agent: _agent }: Props) {
   const { t } = useTranslation();
   const [config, setConfig] = useState<Record<string, any> | null>(null);
-  const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [editData, setEditData] = useState<any>(null);
-  const [dirty, setDirty] = useState(false);
+  const [tab, setTab] = useState<ConfigTab>("models");
   const [showSensitive, setShowSensitive] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const [modelsData, setModelsData] = useState<Record<string, any>>({});
+  const [channelsData, setChannelsData] = useState<Record<string, any>>({});
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -47,240 +31,192 @@ export default function ConfigPage({ agent: _agent }: Props) {
       try {
         const parsed = JSON.parse(raw);
         setConfig(parsed);
-        // Auto-select first available section
-        const firstKey = SECTIONS.find((s) => parsed[s.key] !== undefined)?.key;
-        if (firstKey) {
-          setSelectedSection(firstKey);
-          setEditData(structuredClone(parsed[firstKey]));
-        }
+        setModelsData(structuredClone(parsed.models ?? {}));
+        setChannelsData(structuredClone(parsed.channels ?? {}));
       } catch {
         setConfig({});
+        setModelsData({});
+        setChannelsData({});
       }
     });
   }, []);
 
-  const selectSection = (key: string) => {
-    if (dirty && !confirm(t("config.discardConfirm"))) return;
-    setSelectedSection(key);
-    setEditData(config ? structuredClone(config[key] ?? {}) : {});
-    setDirty(false);
-  };
+  const currentData = useMemo(() => (tab === "models" ? modelsData : channelsData), [tab, modelsData, channelsData]);
 
-  const handleSave = useCallback(async () => {
-    if (!config || !selectedSection) return;
+  const handleSave = async () => {
+    if (!config) return;
     try {
-      const newConfig = { ...config, [selectedSection]: editData };
-      await api.saveConfig(JSON.stringify(newConfig, null, 2));
-      setConfig(newConfig);
+      const next = {
+        ...config,
+        models: modelsData,
+        channels: channelsData,
+      };
+      await api.saveConfig(JSON.stringify(next, null, 2));
+      setConfig(next);
       setDirty(false);
       showToast(t("config.saved"));
     } catch (e: any) {
       showToast(e?.toString() || "Error", "error");
     }
-  }, [config, selectedSection, editData, t]);
+  };
 
   if (!config) return <div>{t("common.loading")}</div>;
 
-  const availableSections = SECTIONS.filter((s) => config[s.key] !== undefined);
-
   return (
     <div className="page-shell">
-      <div className="page-header page-fixed">
-        <h2>{t("config.title")}</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <p>{t("config.desc")}</p>
-          <label className="config-sensitive-toggle">
-            <input
-              type="checkbox"
-              checked={showSensitive}
-              onChange={(e) => setShowSensitive(e.target.checked)}
-            />
-            {t("config.showSensitive")}
-          </label>
+      <div className="page-fixed">
+        <div className="page-header">
+          <h2>{t("config.titleSimple")}</h2>
+          <p>{t("config.descSimple")}</p>
+        </div>
+        <div className="tabs">
+          {(["models", "channels"] as ConfigTab[]).map((item) => (
+            <button
+              key={item}
+              className={`tab ${tab === item ? "active" : ""}`}
+              onClick={() => setTab(item)}
+            >
+              {t(`config.simpleTab.${item}`)}
+            </button>
+          ))}
         </div>
       </div>
-      <div className="page-split">
-        {/* Left: section list */}
-        <div style={{ width: 220, flexShrink: 0 }} className="page-pane-scroll">
-          <div className="memory-timeline">
-            {availableSections.map((s) => (
-              <div
-                key={s.key}
-                className="memory-item"
-                onClick={() => selectSection(s.key)}
-                style={{
-                  borderColor: selectedSection === s.key ? "var(--accent)" : undefined,
-                }}
-              >
-                <div className="date">
-                  {s.icon} {s.key}
-                </div>
-                <div className="preview">{t(`config.section.${s.key}`)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Right: form */}
-        <div style={{ flex: 1 }} className="page-pane-scroll">
-          {selectedSection && editData !== null ? (
-            <div className="card">
-              <div className="card-header">
-                <h3>
-                  {SECTIONS.find((s) => s.key === selectedSection)?.icon}{" "}
-                  {selectedSection}
-                </h3>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {dirty && (
-                    <span style={{ fontSize: 12, color: "var(--warning)" }}>
-                      {t("config.unsaved")}
-                    </span>
-                  )}
-                  <button className="btn btn-primary" onClick={handleSave}>
-                    {t("config.save")}
-                  </button>
-                </div>
-              </div>
-
-              <div className="config-form">
-                <FormFields
-                  data={editData}
-                  path={[]}
-                  onChange={(newData) => {
-                    setEditData(newData);
-                    setDirty(true);
-                  }}
-                  showSensitive={showSensitive}
+      <div className="page-scroll">
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <h3>{t(tab === "models" ? "config.modelsTitle" : "config.channelsTitle")}</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <label className="config-sensitive-toggle">
+                <input
+                  type="checkbox"
+                  checked={showSensitive}
+                  onChange={(e) => setShowSensitive(e.target.checked)}
                 />
-              </div>
+                {t("config.showSensitive")}
+              </label>
+              {dirty && <span style={{ fontSize: 12, color: "var(--warning)" }}>{t("config.unsaved")}</span>}
+              <button className="btn btn-primary" onClick={handleSave}>{t("config.save")}</button>
             </div>
-          ) : (
-            <div className="card">
-              <p style={{ color: "var(--text-muted)" }}>
-                {t("config.selectSection")}
-              </p>
-            </div>
-          )}
+          </div>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
+            {t(tab === "models" ? "config.modelsDesc" : "config.channelsDesc")}
+          </p>
+        </div>
+
+        <div className="card">
+          <SimpleConfigFields
+            data={currentData}
+            showSensitive={showSensitive}
+            onChange={(newData) => {
+              if (tab === "models") setModelsData(newData);
+              else setChannelsData(newData);
+              setDirty(true);
+            }}
+          />
         </div>
       </div>
+
       {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }
 
-// ============================================================
-// Recursive Form Fields
-// ============================================================
-
-interface FormFieldsProps {
-  data: any;
-  path: string[];
-  onChange: (newData: any) => void;
+function SimpleConfigFields({
+  data,
+  showSensitive,
+  onChange,
+}: {
+  data: Record<string, any>;
   showSensitive: boolean;
+  onChange: (newData: Record<string, any>) => void;
+}) {
+  const entries = Object.entries(data ?? {});
+
+  if (entries.length === 0) {
+    return <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>No settings found.</p>;
+  }
+
+  return (
+    <div className="config-object">
+      {entries.map(([key, value]) => {
+        const isNested = typeof value === "object" && value !== null;
+        return (
+          <div key={key} className={isNested ? "config-field-nested" : "config-field"}>
+            <label className="config-label">{key}</label>
+            {isNested ? (
+              <NestedObjectEditor
+                value={value}
+                showSensitive={showSensitive}
+                onChange={(nextVal) => onChange({ ...data, [key]: nextVal })}
+              />
+            ) : (
+              <ValueInput
+                fieldKey={key}
+                value={value}
+                showSensitive={showSensitive}
+                onChange={(nextVal) => onChange({ ...data, [key]: nextVal })}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-function FormFields({ data, path, onChange, showSensitive }: FormFieldsProps) {
-  if (data === null || data === undefined) {
-    return <span className="config-null">null</span>;
-  }
-
-  if (Array.isArray(data)) {
-    return (
-      <div className="config-array">
-        {data.map((item, i) => (
-          <div key={i} className="config-array-item">
-            <div className="config-array-header">
-              <span className="config-array-index">[{i}]</span>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => {
-                  const newArr = [...data];
-                  newArr.splice(i, 1);
-                  onChange(newArr);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <FormFields
-              data={item}
-              path={[...path, String(i)]}
-              onChange={(newItem) => {
-                const newArr = [...data];
-                newArr[i] = newItem;
-                onChange(newArr);
-              }}
-              showSensitive={showSensitive}
-            />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (typeof data === "object") {
-    const entries = Object.entries(data);
-    return (
+function NestedObjectEditor({
+  value,
+  showSensitive,
+  onChange,
+}: {
+  value: Record<string, any>;
+  showSensitive: boolean;
+  onChange: (nextVal: Record<string, any>) => void;
+}) {
+  return (
+    <div className="config-nested-content">
       <div className="config-object">
-        {entries.map(([key, value]) => {
-          const fullPath = [...path, key];
-          const isSensitive = SENSITIVE_KEYS.has(key.toLowerCase());
-          const isNested = typeof value === "object" && value !== null;
-
+        {Object.entries(value).map(([childKey, childValue]) => {
+          const nested = typeof childValue === "object" && childValue !== null;
           return (
-            <div key={key} className={isNested ? "config-field-nested" : "config-field"}>
-              <label className="config-label">{key}</label>
-              {isNested ? (
-                <div className="config-nested-content">
-                  <FormFields
-                    data={value}
-                    path={fullPath}
-                    onChange={(newVal) => {
-                      onChange({ ...data, [key]: newVal });
-                    }}
-                    showSensitive={showSensitive}
-                  />
-                </div>
-              ) : (
-                <FieldInput
-                  value={value}
-                  isSensitive={isSensitive}
+            <div key={childKey} className={nested ? "config-field-nested" : "config-field"}>
+              <label className="config-label">{childKey}</label>
+              {nested ? (
+                <NestedObjectEditor
+                  value={childValue}
                   showSensitive={showSensitive}
-                  onChange={(newVal) => {
-                    onChange({ ...data, [key]: newVal });
-                  }}
+                  onChange={(nextChild) => onChange({ ...value, [childKey]: nextChild })}
+                />
+              ) : (
+                <ValueInput
+                  fieldKey={childKey}
+                  value={childValue}
+                  showSensitive={showSensitive}
+                  onChange={(nextChild) => onChange({ ...value, [childKey]: nextChild })}
                 />
               )}
             </div>
           );
         })}
       </div>
-    );
-  }
-
-  // Primitive at top level (unlikely but safe)
-  return (
-    <FieldInput
-      value={data}
-      isSensitive={false}
-      showSensitive={showSensitive}
-      onChange={onChange}
-    />
+    </div>
   );
 }
 
-// ============================================================
-// Single Field Input
-// ============================================================
-
-interface FieldInputProps {
+function ValueInput({
+  fieldKey,
+  value,
+  showSensitive,
+  onChange,
+}: {
+  fieldKey: string;
   value: any;
-  isSensitive: boolean;
   showSensitive: boolean;
-  onChange: (newVal: any) => void;
-}
+  onChange: (nextVal: any) => void;
+}) {
+  const isSensitive = SENSITIVE_KEYS.has(fieldKey.toLowerCase());
 
-function FieldInput({ value, isSensitive, showSensitive, onChange }: FieldInputProps) {
   if (typeof value === "boolean") {
     return (
       <div className="config-toggle-wrapper">
@@ -288,7 +224,7 @@ function FieldInput({ value, isSensitive, showSensitive, onChange }: FieldInputP
           className={`config-toggle ${value ? "config-toggle-on" : ""}`}
           onClick={() => onChange(!value)}
         >
-          {value ? "✓ true" : "✗ false"}
+          {value ? "true" : "false"}
         </button>
       </div>
     );
@@ -305,9 +241,25 @@ function FieldInput({ value, isSensitive, showSensitive, onChange }: FieldInputP
     );
   }
 
-  // String
+  if (Array.isArray(value)) {
+    return (
+      <textarea
+        className="editor-textarea"
+        style={{ minHeight: 84 }}
+        value={JSON.stringify(value, null, 2)}
+        onChange={(e) => {
+          try {
+            onChange(JSON.parse(e.target.value));
+          } catch {
+            onChange(e.target.value);
+          }
+        }}
+      />
+    );
+  }
+
   const strVal = String(value ?? "");
-  const masked = isSensitive && !showSensitive && strVal.length > 6;
+  const masked = isSensitive && !showSensitive && strVal.length > 0;
 
   return (
     <input

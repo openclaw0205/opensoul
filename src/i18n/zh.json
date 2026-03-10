@@ -228,6 +228,16 @@
       "gateway": "网关设置",
       "skills": "技能配置",
       "plugins": "插件配置"
+    },
+    "titleSimple": "设置",
+    "descSimple": "这里只保留新手最常用的设置：模型和渠道。",
+    "modelsTitle": "模型设置",
+    "modelsDesc": "配置默认模型、备用模型和模型提供商相关信息。",
+    "channelsTitle": "渠道设置",
+    "channelsDesc": "配置 Telegram、Discord 等通讯渠道的启用和基本参数。",
+    "simpleTab": {
+      "models": "模型",
+      "channels": "渠道"
     }
   }
 }

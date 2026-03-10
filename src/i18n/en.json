@@ -228,6 +228,16 @@
       "gateway": "Gateway settings",
       "skills": "Skills configuration",
       "plugins": "Plugin configuration"
+    },
+    "titleSimple": "Settings",
+    "descSimple": "Only the settings beginners care about most: models and channels.",
+    "modelsTitle": "Model Settings",
+    "modelsDesc": "Configure default models, fallback models, and model-provider basics.",
+    "channelsTitle": "Channel Settings",
+    "channelsDesc": "Configure Telegram, Discord, and other communication channels.",
+    "simpleTab": {
+      "models": "Models",
+      "channels": "Channels"
     }
   }
 }
